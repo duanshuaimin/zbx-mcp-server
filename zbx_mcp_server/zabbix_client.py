@@ -70,7 +70,7 @@ class ZabbixClient:
     async def login(self) -> str:
         """Login to Zabbix and get session token."""
         params = {
-            "user": self.config.username,
+            "username": self.config.username,
             "password": self.config.password
         }
         
