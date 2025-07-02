@@ -57,3 +57,6 @@ htmlcov/
 
 # OS specific
 .DS_Store
+
+# AI-related files
+CLAUDE.md
