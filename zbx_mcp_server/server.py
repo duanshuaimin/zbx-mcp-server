@@ -74,7 +74,7 @@ class MCPServer:
                 
             except Exception as e:
                 error_response = MCPResponse(
-                    id=None,
+                    id=getattr(body, 'id', None) if 'body' in locals() else None,
                     error={"code": -32603, "message": f"Internal error: {str(e)}"}
                 )
                 return JSONResponse(content=error_response.model_dump())

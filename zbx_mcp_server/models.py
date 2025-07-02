@@ -21,6 +21,12 @@ class MCPResponse(BaseModel):
     
     class Config:
         extra = "forbid"
+    
+    def model_dump(self, **kwargs):
+        """Override to ensure only result OR error is present, never both."""
+        data = super().model_dump(**kwargs)
+        # Remove None values to avoid sending both result and error
+        return {k: v for k, v in data.items() if v is not None}
 
 
 class MCPError(BaseModel):
