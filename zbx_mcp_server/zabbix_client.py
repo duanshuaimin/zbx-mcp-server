@@ -40,7 +40,10 @@ class ZabbixClient:
             "id": self.request_id
         }
         
+        # Add auth token for authenticated requests (try different approaches)
+        headers = {"Content-Type": "application/json"}
         if self.session_token and method != "user.login":
+            # Try standard approach first
             request_data["auth"] = self.session_token
             
         self.request_id += 1
@@ -50,17 +53,38 @@ class ZabbixClient:
             verify=self.config.verify_ssl
         ) as client:
             try:
-                response = await client.post(
-                    url,
-                    json=request_data,
-                    headers={"Content-Type": "application/json"}
-                )
+                response = await client.post(url, json=request_data, headers=headers)
                 response.raise_for_status()
                 
                 result = response.json()
                 
                 if "error" in result:
-                    raise ZabbixAPIError(f"Zabbix API error: {result['error']}")
+                    # If auth error, try alternative approach
+                    if "auth" in str(result["error"]) and "unexpected parameter" in str(result["error"]):
+                        # Try without auth in root, add to headers instead
+                        request_data_alt = {
+                            "jsonrpc": "2.0",
+                            "method": method,
+                            "params": params,
+                            "id": self.request_id - 1
+                        }
+                        headers_alt = {
+                            "Content-Type": "application/json",
+                            "Authorization": f"Bearer {self.session_token}"
+                        }
+                        
+                        response_alt = await client.post(url, json=request_data_alt, headers=headers_alt)
+                        response_alt.raise_for_status()
+                        result_alt = response_alt.json()
+                        
+                        if "error" in result_alt:
+                            error_msg = f"Zabbix API error for method '{method}': {result_alt['error']}"
+                            raise ZabbixAPIError(error_msg)
+                        
+                        return result_alt.get("result", {})
+                    else:
+                        error_msg = f"Zabbix API error for method '{method}': {result['error']}"
+                        raise ZabbixAPIError(error_msg)
                     
                 return result.get("result", {})
                 
