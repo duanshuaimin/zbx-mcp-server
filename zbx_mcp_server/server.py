@@ -75,7 +75,7 @@ class MCPServer:
             except Exception as e:
                 error_response = MCPResponse(
                     id=None,
-                    error=MCPError(code=-32603, message=f"Internal error: {str(e)}").model_dump()
+                    error={"code": -32603, "message": f"Internal error: {str(e)}"}
                 )
                 return JSONResponse(content=error_response.model_dump())
     
@@ -151,7 +151,7 @@ class MCPServer:
         """Create an error response."""
         return MCPResponse(
             id=request_id,
-            error=MCPError(code=code, message=message).model_dump()
+            error={"code": code, "message": message}
         )
 
 

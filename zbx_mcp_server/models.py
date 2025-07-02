@@ -18,6 +18,9 @@ class MCPResponse(BaseModel):
     id: Optional[Union[str, int]] = None
     result: Optional[Dict[str, Any]] = None
     error: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        extra = "forbid"
 
 
 class MCPError(BaseModel):
