@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "zbx-mcp-server": {
+      "command": "python",
+      "args": ["-m", "zbx_mcp_server.main", "--host", "127.0.0.1", "--port", "8000"],
+      "cwd": "/Users/haiyanluo/zbx-mcp-server",
+      "env": {
+        "no_proxy": "localhost,127.0.0.1"
+      }
+    }
+  }
+}
