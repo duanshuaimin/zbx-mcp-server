@@ -33,10 +33,6 @@ class ZabbixClient:
         """Make a JSON-RPC request to Zabbix API."""
         url = f"{self.config.url}/api_jsonrpc.php"
         
-        # For Zabbix 6.0+, auth token goes in params, not root level
-        if self.session_token and method != "user.login":
-            params = {**params, "auth": self.session_token}
-        
         request_data = {
             "jsonrpc": "2.0",
             "method": method,
@@ -45,6 +41,11 @@ class ZabbixClient:
         }
         
         headers = {"Content-Type": "application/json"}
+        
+        # For authenticated requests, use Authorization Bearer header
+        if self.session_token and method != "user.login":
+            headers["Authorization"] = f"Bearer {self.session_token}"
+            
         self.request_id += 1
         
         async with httpx.AsyncClient(
