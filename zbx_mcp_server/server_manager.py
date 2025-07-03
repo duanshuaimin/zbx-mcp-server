@@ -2,6 +2,7 @@
 
 from typing import Dict, Optional, List
 import asyncio
+import logging
 from .zabbix_client import ZabbixClient
 from .config import Config, ZabbixServerConfig, get_server_config
 
@@ -13,6 +14,7 @@ class ZabbixServerManager:
         self.config = config
         self._clients: Dict[str, ZabbixClient] = {}
         self._client_locks: Dict[str, asyncio.Lock] = {}
+        self.logger = logging.getLogger("server_manager")
     
     async def get_client(self, server_id: Optional[str] = None) -> ZabbixClient:
         """Get or create a Zabbix client for the specified server."""
@@ -21,7 +23,9 @@ class ZabbixServerManager:
         
         if server_id not in self.config.zabbix_servers:
             available_servers = list(self.config.zabbix_servers.keys())
-            raise ValueError(f"Server '{server_id}' not found. Available servers: {available_servers}")
+            error_msg = f"Server '{server_id}' not found. Available servers: {available_servers}"
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
         
         # Create lock for this server if it doesn't exist
         if server_id not in self._client_locks:
@@ -29,6 +33,7 @@ class ZabbixServerManager:
         
         async with self._client_locks[server_id]:
             if server_id not in self._clients:
+                self.logger.info(f"Creating new Zabbix client for server: {server_id}")
                 server_config = self.config.zabbix_servers[server_id]
                 self._clients[server_id] = ZabbixClient(
                     url=server_config.url,
@@ -37,6 +42,7 @@ class ZabbixServerManager:
                     timeout=server_config.timeout,
                     verify_ssl=server_config.verify_ssl
                 )
+                self.logger.debug(f"Client created for server: {server_id} at {server_config.url}")
         
         return self._clients[server_id]
     

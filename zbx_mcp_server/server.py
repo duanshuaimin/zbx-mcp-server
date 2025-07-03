@@ -1,6 +1,7 @@
 """Minimal MCP server implementation."""
 
 import json
+import logging
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
@@ -13,19 +14,27 @@ from .models import (
 from .zabbix_client import ZabbixClient, ZabbixConfig
 from .config import load_config
 from .server_manager import ZabbixServerManager
+from .logging_config import setup_zabbix_logging
 
 
 class MCPServer:
     """Minimal MCP server."""
     
     def __init__(self, config_path: Optional[str] = None):
+        # Load configuration first
+        self.config = load_config(config_path)
+        
+        # Setup logging
+        setup_zabbix_logging(self.config.to_dict())
+        self.logger = logging.getLogger("mcp_server")
+        
         self.app = FastAPI(title="Zabbix MCP Server", version="0.1.0")
         self.setup_routes()
         self.tools = self._register_tools()
         
-        # Load configuration and setup multi-server manager
-        self.config = load_config(config_path)
+        # Setup multi-server manager
         self.server_manager = ZabbixServerManager(self.config)
+        self.logger.info("MCP Server initialized successfully")
     
     def _register_tools(self) -> List[Tool]:
         """Register available tools."""

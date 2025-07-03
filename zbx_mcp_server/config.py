@@ -32,6 +32,16 @@ class Config:
     zabbix_servers: Dict[str, ZabbixServerConfig]
     server: ServerConfig
     default_zabbix_server: Optional[str] = None
+    
+    def to_dict(self) -> Dict:
+        """Convert configuration to dictionary for logging setup."""
+        return {
+            "log_level": self.server.log_level,
+            "host": self.server.host,
+            "port": self.server.port,
+            "log_file": "logs/zabbix_mcp_server.log",
+            "zabbix_log_file": "logs/zabbix_api.log"
+        }
 
 
 def load_config(config_path: Optional[str] = None) -> Config:

@@ -1,6 +1,8 @@
 """Zabbix API client for host management operations."""
 
 import json
+import logging
+import time
 from typing import Any, Dict, List, Optional
 import httpx
 from dataclasses import dataclass
@@ -40,6 +42,23 @@ class ZabbixClient:
         self.session_token: Optional[str] = None
         self.request_id = 1
         self._client: Optional[httpx.AsyncClient] = None
+        self.logger = logging.getLogger(f"zabbix_client.{self.config.url}")
+        
+    def _mask_sensitive_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Mask sensitive data in API requests/responses for logging."""
+        if isinstance(data, dict):
+            masked_data = {}
+            for key, value in data.items():
+                if key.lower() in ['password', 'token', 'sessionid']:
+                    masked_data[key] = "***MASKED***"
+                elif isinstance(value, dict):
+                    masked_data[key] = self._mask_sensitive_data(value)
+                elif isinstance(value, list):
+                    masked_data[key] = [self._mask_sensitive_data(item) if isinstance(item, dict) else item for item in value]
+                else:
+                    masked_data[key] = value
+            return masked_data
+        return data
         
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -76,6 +95,13 @@ class ZabbixClient:
             
         self.request_id += 1
         
+        # Log request
+        start_time = time.time()
+        masked_request = self._mask_sensitive_data(request_data)
+        self.logger.info(f"API Request: {method} - ID: {self.request_id-1}")
+        self.logger.debug(f"Request URL: {url}")
+        self.logger.debug(f"Request Data: {json.dumps(masked_request, indent=2)}")
+        
         client = await self._get_client()
         try:
             response = await client.post(url, json=request_data, headers=headers)
@@ -83,17 +109,30 @@ class ZabbixClient:
             
             result = response.json()
             
+            # Log response
+            duration = time.time() - start_time
+            self.logger.info(f"API Response: {method} - ID: {self.request_id-1} - Duration: {duration:.3f}s - Status: {response.status_code}")
+            
             if "error" in result:
                 error_msg = f"Zabbix API error for method '{method}': {result['error']}"
+                self.logger.error(f"API Error: {error_msg}")
                 raise ZabbixAPIError(error_msg)
-                
+            
+            # Log successful response (mask sensitive data)
+            masked_result = self._mask_sensitive_data(result)
+            self.logger.debug(f"Response Data: {json.dumps(masked_result, indent=2)}")
+            
             return result.get("result", {})
             
         except httpx.HTTPError as e:
-            raise ZabbixAPIError(f"HTTP error: {str(e)}")
+            duration = time.time() - start_time
+            error_msg = f"HTTP error: {str(e)}"
+            self.logger.error(f"API HTTP Error: {method} - ID: {self.request_id-1} - Duration: {duration:.3f}s - Error: {error_msg}")
+            raise ZabbixAPIError(error_msg)
     
     async def login(self) -> str:
         """Login to Zabbix and get session token."""
+        self.logger.info(f"Attempting login for user: {self.config.username}")
         params = {
             "username": self.config.username,
             "password": self.config.password
@@ -101,18 +140,23 @@ class ZabbixClient:
         
         result = await self._make_request("user.login", params)
         self.session_token = result
+        self.logger.info(f"Login successful for user: {self.config.username}")
         return result
     
     async def logout(self) -> bool:
         """Logout from Zabbix."""
         if not self.session_token:
+            self.logger.debug("No session token, logout not needed")
             return True
             
         try:
+            self.logger.info(f"Attempting logout for user: {self.config.username}")
             await self._make_request("user.logout", {})
             self.session_token = None
+            self.logger.info(f"Logout successful for user: {self.config.username}")
             return True
-        except ZabbixAPIError:
+        except ZabbixAPIError as e:
+            self.logger.error(f"Logout failed for user: {self.config.username} - Error: {str(e)}")
             return False
     
     async def api_call(self, method: str, params: Dict[str, Any] = None) -> Any:
@@ -122,6 +166,7 @@ class ZabbixClient:
         
         # Auto-login for authenticated methods
         if method != "user.login" and not self.session_token:
+            self.logger.debug(f"Auto-login required for method: {method}")
             await self.login()
         
         return await self._make_request(method, params)
