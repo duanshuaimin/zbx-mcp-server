@@ -215,7 +215,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_host_groups",
-                description="Get host groups",
+                description="Get all host groups. Only use when the user explicitly asks for a list of host groups. To get hosts in a group, use 'zabbix_get_hosts' with the 'group_name' filter.",
                 inputSchema={
                     "type": "object",
                     "properties": {
