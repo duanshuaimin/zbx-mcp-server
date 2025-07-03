@@ -12,6 +12,7 @@ from .models import (
 )
 from .zabbix_client import ZabbixClient, ZabbixConfig
 from .config import load_config
+from .server_manager import ZabbixServerManager
 
 
 class MCPServer:
@@ -22,16 +23,9 @@ class MCPServer:
         self.setup_routes()
         self.tools = self._register_tools()
         
-        # Load configuration
+        # Load configuration and setup multi-server manager
         self.config = load_config(config_path)
-        self.zabbix_config = ZabbixConfig(
-            url=self.config.zabbix.url,
-            username=self.config.zabbix.username,
-            password=self.config.zabbix.password,
-            timeout=self.config.zabbix.timeout,
-            verify_ssl=self.config.zabbix.verify_ssl
-        )
-        self.zabbix_client = ZabbixClient(self.zabbix_config)
+        self.server_manager = ZabbixServerManager(self.config)
     
     def _register_tools(self) -> List[Tool]:
         """Register available tools."""
@@ -60,11 +54,52 @@ class MCPServer:
                 }
             ),
             Tool(
-                name="zabbix_get_hosts",
-                description="Get hosts from Zabbix instance",
+                name="zabbix_list_servers",
+                description="List all distributed Zabbix server nodes",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            ),
+            Tool(
+                name="zabbix_test_connection",
+                description="Test connection to distributed Zabbix server nodes",
                 inputSchema={
                     "type": "object",
                     "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Specific server ID to test (optional, tests all if not provided)"
+                        }
+                    },
+                    "required": []
+                }
+            ),
+            Tool(
+                name="zabbix_get_server_info",
+                description="Get detailed information about a distributed Zabbix server node",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Server ID (optional, uses default if not provided)"
+                        }
+                    },
+                    "required": []
+                }
+            ),
+            Tool(
+                name="zabbix_get_hosts",
+                description="Get hosts from distributed Zabbix server node",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                        },
                         "group_name": {
                             "type": "string",
                             "description": "Filter by host group name (optional)"
@@ -76,6 +111,10 @@ class MCPServer:
                         "status": {
                             "type": "integer",
                             "description": "Host status: 0=enabled, 1=disabled (optional)"
+                        },
+                        "include_templates": {
+                            "type": "boolean",
+                            "description": "If true, include parent templates in the result (default: false)"
                         }
                     },
                     "required": []
@@ -83,10 +122,14 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_create_host",
-                description="Create a new host in Zabbix",
+                description="Create a new host in distributed Zabbix server node",
                 inputSchema={
                     "type": "object",
                     "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                        },
                         "host_name": {
                             "type": "string",
                             "description": "Technical host name"
@@ -114,10 +157,14 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_update_host",
-                description="Update an existing host in Zabbix",
+                description="Update an existing host in distributed Zabbix server node",
                 inputSchema={
                     "type": "object",
                     "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                        },
                         "host_id": {
                             "type": "string",
                             "description": "Host ID to update"
@@ -140,10 +187,14 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_delete_host",
-                description="Delete hosts from Zabbix",
+                description="Delete hosts from distributed Zabbix server node",
                 inputSchema={
                     "type": "object",
                     "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                        },
                         "host_ids": {
                             "type": "array",
                             "items": {"type": "string"},
@@ -155,11 +206,66 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_host_groups",
-                description="Get all host groups from Zabbix",
+                description="Get all host groups from distributed Zabbix server node",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                        }
+                    },
+                    "required": []
+                }
+            ),
+            Tool(
+                name="zabbix_get_templates",
+                description="Get all templates from distributed Zabbix server node",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                        }
+                    },
+                    "required": []
+                }
+            ),
+            Tool(
+                name="zabbix_get_distributed_summary",
+                description="Get summary status of all distributed Zabbix server nodes",
                 inputSchema={
                     "type": "object",
                     "properties": {},
                     "required": []
+                }
+            ),
+            Tool(
+                name="zabbix_get_aggregated_hosts",
+                description="Get hosts from all distributed Zabbix server nodes",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+            ),
+            Tool(
+                name="zabbix_execute_on_all_nodes",
+                description="Execute a Zabbix API call on all distributed server nodes",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "method": {
+                            "type": "string",
+                            "description": "Zabbix API method to execute"
+                        },
+                        "params": {
+                            "type": "object",
+                            "description": "Parameters for the API call (optional)"
+                        }
+                    },
+                    "required": ["method"]
                 }
             )
         ]
@@ -248,11 +354,40 @@ class MCPServer:
                         "text": "pong"
                     }]
                 )
+            elif tool_request.name == "zabbix_list_servers":
+                servers = self.server_manager.list_servers()
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(servers, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_test_connection":
+                server_id = tool_request.arguments.get("server_id")
+                connection_results = await self.server_manager.test_connection(server_id)
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(connection_results, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_server_info":
+                server_id = tool_request.arguments.get("server_id")
+                server_info = await self.server_manager.get_server_info(server_id)
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(server_info, indent=2, ensure_ascii=False)
+                    }]
+                )
             elif tool_request.name == "zabbix_get_hosts":
-                hosts = await self.zabbix_client.get_hosts(
+                server_id = tool_request.arguments.get("server_id")
+                client = await self.server_manager.get_client(server_id)
+                hosts = await client.get_hosts(
                     group_name=tool_request.arguments.get("group_name"),
                     host_name=tool_request.arguments.get("host_name"),
-                    status=tool_request.arguments.get("status")
+                    status=tool_request.arguments.get("status"),
+                    include_templates=tool_request.arguments.get("include_templates", False)
                 )
                 result = CallToolResult(
                     content=[{
@@ -262,6 +397,9 @@ class MCPServer:
                 )
             elif tool_request.name == "zabbix_create_host":
                 args = tool_request.arguments
+                server_id = args.pop("server_id", None)
+                client = await self.server_manager.get_client(server_id)
+                
                 interfaces = [{
                     "type": 1,  # Zabbix agent
                     "main": 1,
@@ -271,7 +409,7 @@ class MCPServer:
                     "port": str(args.get("port", 10050))
                 }]
                 
-                created_host = await self.zabbix_client.create_host(
+                created_host = await client.create_host(
                     host_name=args["host_name"],
                     visible_name=args["visible_name"],
                     group_ids=args["group_ids"],
@@ -285,9 +423,11 @@ class MCPServer:
                 )
             elif tool_request.name == "zabbix_update_host":
                 args = tool_request.arguments
+                server_id = args.pop("server_id", None)
                 host_id = args.pop("host_id")
+                client = await self.server_manager.get_client(server_id)
                 
-                updated_host = await self.zabbix_client.update_host(host_id, **args)
+                updated_host = await client.update_host(host_id, **args)
                 result = CallToolResult(
                     content=[{
                         "type": "text",
@@ -295,8 +435,10 @@ class MCPServer:
                     }]
                 )
             elif tool_request.name == "zabbix_delete_host":
+                server_id = tool_request.arguments.get("server_id")
                 host_ids = tool_request.arguments["host_ids"]
-                deleted_hosts = await self.zabbix_client.delete_host(host_ids)
+                client = await self.server_manager.get_client(server_id)
+                deleted_hosts = await client.delete_host(host_ids)
                 result = CallToolResult(
                     content=[{
                         "type": "text",
@@ -304,11 +446,49 @@ class MCPServer:
                     }]
                 )
             elif tool_request.name == "zabbix_get_host_groups":
-                groups = await self.zabbix_client.get_host_groups()
+                server_id = tool_request.arguments.get("server_id")
+                client = await self.server_manager.get_client(server_id)
+                groups = await client.get_host_groups()
                 result = CallToolResult(
                     content=[{
                         "type": "text",
                         "text": json.dumps(groups, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_templates":
+                server_id = tool_request.arguments.get("server_id")
+                client = await self.server_manager.get_client(server_id)
+                templates = await client.get_templates()
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(templates, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_distributed_summary":
+                summary = await self.server_manager.get_distributed_summary()
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(summary, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_aggregated_hosts":
+                aggregated_hosts = await self.server_manager.get_aggregated_hosts()
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(aggregated_hosts, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_execute_on_all_nodes":
+                method = tool_request.arguments["method"]
+                params = tool_request.arguments.get("params", {})
+                execution_results = await self.server_manager.execute_on_all_nodes(method, params)
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(execution_results, indent=2, ensure_ascii=False)
                     }]
                 )
             else:
