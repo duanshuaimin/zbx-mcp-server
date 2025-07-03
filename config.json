@@ -3,29 +3,29 @@
     "datacenter-beijing": {
       "name": "Beijing Datacenter Node",
       "description": "Zabbix server node for Beijing datacenter monitoring",
-      "url": "http://zabbix-bj.company.com",
+      "url": "http://192.168.2.156",
       "username": "Admin",
       "password": "zabbix",
       "timeout": 30,
-      "verify_ssl": true
+      "verify_ssl": false
     },
     "datacenter-shanghai": {
       "name": "Shanghai Datacenter Node", 
       "description": "Zabbix server node for Shanghai datacenter monitoring",
-      "url": "http://zabbix-sh.company.com",
+      "url": "http://192.168.2.199",
       "username": "Admin",
       "password": "zabbix",
       "timeout": 30,
-      "verify_ssl": true
+      "verify_ssl": false
     },
     "cloud-aws": {
       "name": "AWS Cloud Node",
       "description": "Zabbix server node for AWS infrastructure monitoring",
-      "url": "http://zabbix-aws.company.com",
+      "url": "http://192.168.2.171",
       "username": "Admin",
       "password": "zabbix",
       "timeout": 45,
-      "verify_ssl": true
+      "verify_ssl": false
     },
     "development": {
       "name": "Development Environment Node",
