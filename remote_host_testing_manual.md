@@ -6,10 +6,12 @@
 
 ### 重要特性
 
+- **分布式架构**: 支持多个 Zabbix 服务器节点的统一管理
 - **自动重试机制**: 所有 Zabbix API 调用都包含自动重试功能，最多重试 2 次
 - **指数退避**: 重试间隔采用指数退避策略（1秒、2秒）
 - **智能重试**: 仅对网络错误和临时 API 错误进行重试，认证错误和方法错误不重试
 - **详细日志**: 记录每次重试尝试和最终结果
+- **清晰语义**: 工具描述明确区分单节点操作和跨节点聚合操作
 
 ## 1. 服务器配置
 
@@ -78,9 +80,37 @@ python -m zbx_mcp_server.main --reload
 - `logs/zabbix_mcp_server.log`: 主服务器日志
 - `logs/zabbix_api.log`: Zabbix API 专用日志
 
-## 3. API 测试
+## 3. MCP 工具语义说明
 
-### 3.1 初始化连接
+### 3.1 工具命名规则
+
+Zabbix MCP 服务器的工具按照明确的语义规则命名，避免歧义：
+
+#### 单节点操作工具（前缀：`zabbix_`）
+- **作用范围**: 操作单个指定的 Zabbix 服务器节点
+- **server_id 参数**: 可选，未指定时使用默认节点
+- **示例**: `zabbix_get_hosts`, `zabbix_create_host`, `zabbix_test_connection`
+
+#### 跨节点聚合工具（前缀：`zabbix_get_aggregated_` 或 `zabbix_get_distributed_`）
+- **作用范围**: 同时操作所有配置的 Zabbix 服务器节点
+- **server_id 参数**: 不适用（自动操作所有节点）
+- **示例**: `zabbix_get_aggregated_hosts`, `zabbix_get_distributed_summary`
+
+#### 全节点执行工具（前缀：`zabbix_execute_on_all_`）
+- **作用范围**: 在所有节点上执行相同的 API 调用
+- **返回结果**: 包含每个节点的独立响应
+- **示例**: `zabbix_execute_on_all_nodes`
+
+### 3.2 参数语义规范
+
+- **server_id**: "目标 Zabbix 服务器节点 ID"，明确指定操作的目标节点
+- **host_id**: "唯一主机 ID"，用于标识具体的主机记录
+- **group_ids**: "主机组 ID 数组"，明确表示需要提供数组格式
+- **include_templates**: "包含模板信息"，布尔值控制返回数据的详细程度
+
+## 4. API 测试
+
+### 4.1 初始化连接
 
 ```bash
 curl -X POST http://localhost:8000 \
@@ -108,7 +138,7 @@ curl -X POST http://localhost:8000 \
 }
 ```
 
-### 3.2 列出可用工具
+### 4.2 列出可用工具
 
 ```bash
 curl -X POST http://localhost:8000 \
@@ -121,7 +151,7 @@ curl -X POST http://localhost:8000 \
   }'
 ```
 
-### 3.3 测试 Zabbix 服务器连接
+### 4.3 测试 Zabbix 服务器连接
 
 ```bash
 curl -X POST http://localhost:8000 \
@@ -139,7 +169,7 @@ curl -X POST http://localhost:8000 \
   }'
 ```
 
-### 3.4 获取主机列表
+### 4.4 获取主机列表
 
 ```bash
 curl -X POST http://localhost:8000 \
@@ -158,7 +188,7 @@ curl -X POST http://localhost:8000 \
   }'
 ```
 
-### 3.5 分布式服务器概览
+### 4.5 分布式服务器概览
 
 ```bash
 curl -X POST http://localhost:8000 \

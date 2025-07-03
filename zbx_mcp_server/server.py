@@ -64,7 +64,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_list_servers",
-                description="List all distributed Zabbix server nodes",
+                description="List all configured Zabbix server nodes in the distributed infrastructure with their connection details",
                 inputSchema={
                     "type": "object",
                     "properties": {},
@@ -73,13 +73,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_test_connection",
-                description="Test connection to distributed Zabbix server nodes with automatic retry (max 2 retries)",
+                description="Test network connectivity and authentication to one or all Zabbix server nodes (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Specific server ID to test (optional, tests all if not provided)"
+                            "description": "Target Zabbix server node ID to test. If omitted, tests all configured server nodes"
                         }
                     },
                     "required": []
@@ -87,13 +87,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_server_info",
-                description="Get detailed information about a distributed Zabbix server node with automatic retry (max 2 retries)",
+                description="Retrieve detailed server information (version, configuration, status) from a specific Zabbix node (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Server ID (optional, uses default if not provided)"
+                            "description": "Target Zabbix server node ID. If omitted, uses the default configured server node"
                         }
                     },
                     "required": []
@@ -101,29 +101,29 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Get hosts from distributed Zabbix server node with automatic retry (max 2 retries)",
+                description="Retrieve host inventory from a specific Zabbix server node with optional filtering (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                            "description": "Target Zabbix server node ID. If omitted, queries the default configured server node"
                         },
                         "group_name": {
                             "type": "string",
-                            "description": "Filter by host group name (optional)"
+                            "description": "Filter results to hosts belonging to this specific host group name"
                         },
                         "host_name": {
                             "type": "string", 
-                            "description": "Filter by host name pattern (optional)"
+                            "description": "Filter results using partial host name matching (supports wildcards)"
                         },
                         "status": {
                             "type": "integer",
-                            "description": "Host status: 0=enabled, 1=disabled (optional)"
+                            "description": "Filter by host monitoring status: 0=enabled/monitored, 1=disabled/not monitored"
                         },
                         "include_templates": {
                             "type": "boolean",
-                            "description": "If true, include parent templates in the result (default: false)"
+                            "description": "When true, include linked template information for each host in the response"
                         }
                     },
                     "required": []
@@ -131,34 +131,34 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_create_host",
-                description="Create a new host in distributed Zabbix server node with automatic retry (max 2 retries)",
+                description="Add a new monitored host to a specific Zabbix server node with required configuration (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                            "description": "Target Zabbix server node ID. If omitted, queries the default configured server node"
                         },
                         "host_name": {
                             "type": "string",
-                            "description": "Technical host name"
+                            "description": "Technical hostname used internally by Zabbix (must be unique within the server)"
                         },
                         "visible_name": {
                             "type": "string",
-                            "description": "Visible host name"
+                            "description": "Human-readable display name for the host (shown in Zabbix frontend)"
                         },
                         "group_ids": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "List of host group IDs"
+                            "description": "Array of host group IDs where this host will be placed (at least one required)"
                         },
                         "ip_address": {
                             "type": "string",
-                            "description": "Host IP address"
+                            "description": "IP address of the host for Zabbix agent communication"
                         },
                         "port": {
                             "type": "integer",
-                            "description": "Port number (default: 10050)"
+                            "description": "TCP port number for Zabbix agent communication (default: 10050 if not specified)"
                         }
                     },
                     "required": ["host_name", "visible_name", "group_ids", "ip_address"]
@@ -166,29 +166,29 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_update_host",
-                description="Update an existing host in distributed Zabbix server node with automatic retry (max 2 retries)",
+                description="Modify configuration of an existing host on a specific Zabbix server node (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                            "description": "Target Zabbix server node ID. If omitted, queries the default configured server node"
                         },
                         "host_id": {
                             "type": "string",
-                            "description": "Host ID to update"
+                            "description": "Unique host ID of the existing host to be modified"
                         },
                         "host_name": {
                             "type": "string",
-                            "description": "New technical host name (optional)"
+                            "description": "New technical hostname (must be unique within the server if provided)"
                         },
                         "visible_name": {
                             "type": "string",
-                            "description": "New visible host name (optional)"
+                            "description": "New human-readable display name for the host"
                         },
                         "status": {
                             "type": "integer",
-                            "description": "New host status: 0=enabled, 1=disabled (optional)"
+                            "description": "New monitoring status: 0=enable monitoring, 1=disable monitoring"
                         }
                     },
                     "required": ["host_id"]
@@ -196,18 +196,18 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_delete_host",
-                description="Delete hosts from distributed Zabbix server node with automatic retry (max 2 retries)",
+                description="Permanently remove one or more hosts from a specific Zabbix server node (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                            "description": "Target Zabbix server node ID. If omitted, queries the default configured server node"
                         },
                         "host_ids": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "List of host IDs to delete"
+                            "description": "Array of unique host IDs to be permanently deleted from the Zabbix server"
                         }
                     },
                     "required": ["host_ids"]
@@ -215,13 +215,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_host_groups",
-                description="Get all host groups from distributed Zabbix server node with automatic retry (max 2 retries)",
+                description="Retrieve all host groups and their details from a specific Zabbix server node (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                            "description": "Target Zabbix server node ID. If omitted, queries the default configured server node"
                         }
                     },
                     "required": []
@@ -229,13 +229,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_templates",
-                description="Get all templates from distributed Zabbix server node with automatic retry (max 2 retries)",
+                description="Retrieve all monitoring templates and their metadata from a specific Zabbix server node (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Zabbix server ID (optional, uses default if not provided)"
+                            "description": "Target Zabbix server node ID. If omitted, queries the default configured server node"
                         }
                     },
                     "required": []
@@ -243,7 +243,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_distributed_summary",
-                description="Get summary status of all distributed Zabbix server nodes with automatic retry (max 2 retries)",
+                description="Aggregate health status, version info, and key metrics from all configured Zabbix server nodes (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {},
@@ -252,7 +252,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_aggregated_hosts",
-                description="Get hosts from all distributed Zabbix server nodes with automatic retry (max 2 retries)",
+                description="Collect and combine host inventory data from all configured Zabbix server nodes into a unified response (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {},
@@ -261,17 +261,17 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_execute_on_all_nodes",
-                description="Execute a Zabbix API call on all distributed server nodes with automatic retry (max 2 retries)",
+                description="Execute the same Zabbix API method across all configured server nodes and return aggregated results (includes automatic retry up to 2 times)",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "method": {
                             "type": "string",
-                            "description": "Zabbix API method to execute"
+                            "description": "Zabbix API method name to execute (e.g., 'host.get', 'item.get', 'trigger.get')"
                         },
                         "params": {
                             "type": "object",
-                            "description": "Parameters for the API call (optional)"
+                            "description": "JSON parameters object for the specified Zabbix API method (structure depends on the method)"
                         }
                     },
                     "required": ["method"]
