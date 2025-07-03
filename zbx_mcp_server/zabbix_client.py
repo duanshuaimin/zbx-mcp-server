@@ -90,7 +90,9 @@ class ZabbixClient:
         headers = {"Content-Type": "application/json"}
         
         # For authenticated requests, use Authorization Bearer header
-        if self.session_token and method != "user.login":
+        # Some methods like apiinfo.version should not include authorization header
+        unauthenticated_methods = ["user.login", "apiinfo.version"]
+        if self.session_token and method not in unauthenticated_methods:
             headers["Authorization"] = f"Bearer {self.session_token}"
             
         self.request_id += 1
