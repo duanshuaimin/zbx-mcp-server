@@ -233,15 +233,18 @@ class ZabbixClient:
         filter_params = {}
         if status is not None:
             filter_params["status"] = status
+        
+        # Apply search - use exact match for efficiency
+        if host_name:
+            if host_name == "*":
+                # Skip wildcard searches that return no results
+                pass
+            else:
+                # Use exact host name match
+                filter_params["host"] = host_name
+        
         if filter_params:
             params["filter"] = filter_params
-        
-        # Apply search
-        search_params = {}
-        if host_name:
-            search_params["host"] = host_name
-        if search_params:
-            params["search"] = search_params
         
         # Apply group filter
         if group_name:

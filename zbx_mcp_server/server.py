@@ -101,29 +101,29 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Retrieve host inventory from ONE specific Zabbix server node with optional filtering. Use this when you need data from a particular node that you know is operational. For comprehensive host data across all nodes, use zabbix_get_aggregated_hosts instead.",
+                description="Get monitored hosts from a Zabbix server. Use specific filters to narrow results efficiently. For all hosts across multiple servers, use zabbix_get_aggregated_hosts instead.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Target Zabbix server node ID. If omitted, queries the default configured server node"
+                            "description": "Zabbix server ID (use zabbix_list_servers to see available servers)"
                         },
                         "group_name": {
                             "type": "string",
-                            "description": "Filter results to hosts belonging to this specific host group name"
+                            "description": "Host group name to filter by (exact match)"
                         },
                         "host_name": {
                             "type": "string", 
-                            "description": "Filter results using partial host name matching (supports wildcards)"
+                            "description": "Host name to search for (exact match - avoid wildcards for efficiency)"
                         },
                         "status": {
                             "type": "integer",
-                            "description": "Filter by host monitoring status: 0=enabled/monitored, 1=disabled/not monitored"
+                            "description": "Host status filter: 0=enabled, 1=disabled"
                         },
                         "include_templates": {
                             "type": "boolean",
-                            "description": "When true, include linked template information for each host in the response"
+                            "description": "Include template info (default: false for faster queries)"
                         }
                     },
                     "required": []
