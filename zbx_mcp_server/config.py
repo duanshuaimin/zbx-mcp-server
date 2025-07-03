@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Optional
+from typing import Optional, Dict
 from dataclasses import dataclass
 
 
@@ -14,6 +14,8 @@ class ZabbixServerConfig:
     password: str
     timeout: int = 30
     verify_ssl: bool = True
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 @dataclass
@@ -27,38 +29,91 @@ class ServerConfig:
 @dataclass
 class Config:
     """Main configuration."""
-    zabbix: ZabbixServerConfig
+    zabbix_servers: Dict[str, ZabbixServerConfig]
     server: ServerConfig
+    default_zabbix_server: Optional[str] = None
 
 
 def load_config(config_path: Optional[str] = None) -> Config:
     """Load configuration from file."""
     if config_path is None:
-        # Look for config.json in current directory or parent directory
         for path in ["config.json", "../config.json", "./config.json"]:
             if os.path.exists(path):
                 config_path = path
                 break
         else:
-            # Use default configuration
             return Config(
-                zabbix=ZabbixServerConfig(
-                    url="http://localhost:8080",
-                    username="Admin",
-                    password="zabbix",
-                    verify_ssl=False
-                ),
-                server=ServerConfig()
+                zabbix_servers={
+                    "default": ZabbixServerConfig(
+                        url="http://localhost:8080",
+                        username="Admin",
+                        password="zabbix",
+                        verify_ssl=False,
+                        name="Default Zabbix Server"
+                    )
+                },
+                server=ServerConfig(),
+                default_zabbix_server="default"
             )
     
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
-        zabbix_config = ZabbixServerConfig(**data["zabbix"])
         server_config = ServerConfig(**data.get("server", {}))
         
-        return Config(zabbix=zabbix_config, server=server_config)
+        # Handle both old single-server and new multi-server formats
+        if "zabbix" in data and isinstance(data["zabbix"], dict) and "url" in data["zabbix"]:
+            # Old single-server format
+            zabbix_config = ZabbixServerConfig(**data["zabbix"])
+            if not zabbix_config.name:
+                zabbix_config.name = "Default Server"
+            
+            return Config(
+                zabbix_servers={"default": zabbix_config},
+                server=server_config,
+                default_zabbix_server="default"
+            )
+        
+        elif "zabbix_servers" in data:
+            # New multi-server format
+            zabbix_servers = {}
+            for server_id, server_data in data["zabbix_servers"].items():
+                if not server_data.get("name"):
+                    server_data["name"] = server_id.title()
+                zabbix_servers[server_id] = ZabbixServerConfig(**server_data)
+            
+            default_server = data.get("default_zabbix_server")
+            if default_server and default_server not in zabbix_servers:
+                raise ValueError(f"Default server '{default_server}' not found in zabbix_servers")
+            
+            return Config(
+                zabbix_servers=zabbix_servers,
+                server=server_config,
+                default_zabbix_server=default_server or next(iter(zabbix_servers.keys()))
+            )
+        else:
+            raise KeyError("Neither 'zabbix' nor 'zabbix_servers' found in config")
         
     except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
         raise ValueError(f"Failed to load config from {config_path}: {e}")
+
+
+def get_server_config(config: Config, server_id: Optional[str] = None) -> ZabbixServerConfig:
+    """Get configuration for a specific Zabbix server."""
+    if server_id is None:
+        server_id = config.default_zabbix_server
+    
+    if server_id not in config.zabbix_servers:
+        available_servers = list(config.zabbix_servers.keys())
+        raise ValueError(f"Server '{server_id}' not found. Available servers: {available_servers}")
+    
+    return config.zabbix_servers[server_id]
+
+
+def list_servers(config: Config) -> Dict[str, str]:
+    """List all configured Zabbix servers with their descriptions."""
+    return {
+        server_id: server_config.name or server_id
+        for server_id, server_config in config.zabbix_servers.items()
+    }

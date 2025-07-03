@@ -1,11 +1,43 @@
 {
-  "zabbix": {
-    "url": "http://localhost:8080",
-    "username": "Admin",
-    "password": "zabbix",
-    "timeout": 30,
-    "verify_ssl": false
+  "zabbix_servers": {
+    "datacenter-beijing": {
+      "name": "Beijing Datacenter Node",
+      "description": "Zabbix server node for Beijing datacenter monitoring",
+      "url": "http://zabbix-bj.company.com",
+      "username": "Admin",
+      "password": "zabbix",
+      "timeout": 30,
+      "verify_ssl": true
+    },
+    "datacenter-shanghai": {
+      "name": "Shanghai Datacenter Node", 
+      "description": "Zabbix server node for Shanghai datacenter monitoring",
+      "url": "http://zabbix-sh.company.com",
+      "username": "Admin",
+      "password": "zabbix",
+      "timeout": 30,
+      "verify_ssl": true
+    },
+    "cloud-aws": {
+      "name": "AWS Cloud Node",
+      "description": "Zabbix server node for AWS infrastructure monitoring",
+      "url": "http://zabbix-aws.company.com",
+      "username": "Admin",
+      "password": "zabbix",
+      "timeout": 45,
+      "verify_ssl": true
+    },
+    "development": {
+      "name": "Development Environment Node",
+      "description": "Zabbix server node for development and testing",
+      "url": "http://192.168.2.198",
+      "username": "Admin",
+      "password": "zabbix",
+      "timeout": 30,
+      "verify_ssl": false
+    }
   },
+  "default_zabbix_server": "datacenter-beijing",
   "server": {
     "host": "0.0.0.0",
     "port": 8000,
