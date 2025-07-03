@@ -21,7 +21,7 @@
     "cloud-aws": {
       "name": "AWS Cloud Node",
       "description": "Zabbix server node for AWS infrastructure monitoring",
-      "url": "http://192.168.2.171",
+      "url": "http://192.168.2.118",
       "username": "Admin",
       "password": "zabbix",
       "timeout": 45,
