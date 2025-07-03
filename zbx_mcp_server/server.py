@@ -73,13 +73,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_test_connection",
-                description="Test Zabbix server connectivity",
+                description="Test Zabbix server connectivity. Call without parameters to test all servers.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Server ID to test (default: all servers)"
+                            "description": "Server ID to test (optional - defaults to testing all servers)"
                         }
                     },
                     "required": []
@@ -87,13 +87,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_server_info",
-                description="Get Zabbix server information",
+                description="Get Zabbix server information. Call without parameters to get info from the first available server.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Server ID (default: first available)"
+                            "description": "Server ID (optional - defaults to first available server)"
                         }
                     },
                     "required": []
@@ -101,29 +101,29 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Get monitored hosts from a Zabbix server. default: all hosts without filters. Use specific filters to narrow results efficiently. For all hosts across multiple servers, use zabbix_get_aggregated_hosts instead.",
+                description="Get monitored hosts from a Zabbix server. Call without parameters to get all hosts from the first available server. Specify server_id to target a specific server. Use group_name filter only when explicitly requested.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Zabbix server ID (use zabbix_list_servers to see available servers)"
+                            "description": "Zabbix server ID (optional - defaults to first available server)"
                         },
                         "group_name": {
                             "type": "string",
-                            "description": "Host group name to filter by (exact match)"
+                            "description": "Host group name to filter by (optional - only use when user specifically mentions a group)"
                         },
                         "host_name": {
                             "type": "string", 
-                            "description": "Host name to search for (exact match - avoid wildcards for efficiency)"
+                            "description": "Host name to search for (optional - only use when user specifies a hostname)"
                         },
                         "status": {
                             "type": "integer",
-                            "description": "Host status filter: 0=enabled, 1=disabled"
+                            "description": "Host status filter: 0=enabled, 1=disabled (optional)"
                         },
                         "include_templates": {
                             "type": "boolean",
-                            "description": "Include template info (default: false for faster queries)"
+                            "description": "Include template info (optional - defaults to false)"
                         }
                     },
                     "required": []
@@ -215,13 +215,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_host_groups",
-                description="Get all host groups. Only use when the user explicitly asks for a list of host groups. To get hosts in a group, use 'zabbix_get_hosts' with the 'group_name' filter.",
+                description="Get all host groups from a Zabbix server. Call without parameters to get groups from the first available server. Only use when user explicitly asks for host groups list.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Server ID (default: first available)"
+                            "description": "Server ID (optional - defaults to first available server)"
                         }
                     },
                     "required": []
