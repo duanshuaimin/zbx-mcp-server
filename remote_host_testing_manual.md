@@ -82,24 +82,42 @@ python -m zbx_mcp_server.main --reload
 
 ## 3. MCP 工具语义说明
 
-### 3.1 工具命名规则
+### 3.1 智能工具选择指南
 
-Zabbix MCP 服务器的工具按照明确的语义规则命名，避免歧义：
+Zabbix MCP 服务器提供了不同层次的工具，根据您的需求智能选择：
 
-#### 单节点操作工具（前缀：`zabbix_`）
-- **作用范围**: 操作单个指定的 Zabbix 服务器节点
-- **server_id 参数**: 可选，未指定时使用默认节点
-- **示例**: `zabbix_get_hosts`, `zabbix_create_host`, `zabbix_test_connection`
+#### 🎯 单节点精准操作工具（前缀：`zabbix_`）
+- **使用场景**: 当您明确知道目标节点且确认其可用时
+- **特点**: 针对特定节点，连接失败时直接报错
+- **最佳实践**: 先用 `zabbix_test_connection` 确认节点可达性
+- **示例**: `zabbix_get_hosts`, `zabbix_create_host`
 
-#### 跨节点聚合工具（前缀：`zabbix_get_aggregated_` 或 `zabbix_get_distributed_`）
-- **作用范围**: 同时操作所有配置的 Zabbix 服务器节点
-- **server_id 参数**: 不适用（自动操作所有节点）
+#### 🌐 智能聚合工具（前缀：`zabbix_get_aggregated_` 或 `zabbix_get_distributed_`）
+- **使用场景**: 需要从所有可用节点获取数据，不关心个别节点的连接状态
+- **特点**: 自动跳过不可达节点，返回可用节点的聚合结果
+- **优势**: 容错性强，适合分布式环境中的数据收集
 - **示例**: `zabbix_get_aggregated_hosts`, `zabbix_get_distributed_summary`
 
-#### 全节点执行工具（前缀：`zabbix_execute_on_all_`）
-- **作用范围**: 在所有节点上执行相同的 API 调用
-- **返回结果**: 包含每个节点的独立响应
+#### ⚡ 全节点执行工具（前缀：`zabbix_execute_on_all_`）
+- **使用场景**: 需要在所有节点执行相同操作并查看每个节点的独立结果
+- **特点**: 返回每个节点的详细执行状态（成功/失败）
+- **用途**: 批量配置、状态检查、性能分析
 - **示例**: `zabbix_execute_on_all_nodes`
+
+#### 💡 工具选择建议
+
+**统计监控主机** → 使用 `zabbix_get_aggregated_hosts`
+- ✅ 自动聚合所有可用节点的主机数据
+- ✅ 忽略连接失败的节点
+- ❌ 避免使用单节点工具逐个查询
+
+**检查系统状态** → 使用 `zabbix_get_distributed_summary`
+- ✅ 一次性获取所有节点的健康状态
+- ✅ 包含连接失败节点的错误信息
+
+**创建/修改主机** → 使用单节点工具 `zabbix_create_host`
+- ✅ 精确控制在哪个节点操作
+- ⚠️ 操作前建议先测试连接
 
 ### 3.2 参数语义规范
 

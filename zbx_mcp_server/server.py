@@ -73,7 +73,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_test_connection",
-                description="Test network connectivity and authentication to one or all Zabbix server nodes (includes automatic retry up to 2 times)",
+                description="Test connectivity and authentication to specific Zabbix server nodes. Use without server_id to test ALL nodes at once and identify which nodes are reachable. Essential for diagnostics before attempting operations on specific nodes.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -87,7 +87,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_server_info",
-                description="Retrieve detailed server information (version, configuration, status) from a specific Zabbix node (includes automatic retry up to 2 times)",
+                description="Get detailed server information from ONE specific Zabbix node. Use this for targeted server diagnostics when you know the node is reachable. For distributed server overview, use zabbix_get_distributed_summary instead.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -101,7 +101,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Retrieve host inventory from a specific Zabbix server node with optional filtering (includes automatic retry up to 2 times)",
+                description="Retrieve host inventory from ONE specific Zabbix server node with optional filtering. Use this when you need data from a particular node that you know is operational. For comprehensive host data across all nodes, use zabbix_get_aggregated_hosts instead.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -243,7 +243,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_distributed_summary",
-                description="Aggregate health status, version info, and key metrics from all configured Zabbix server nodes (includes automatic retry up to 2 times)",
+                description="Smart aggregation of health status, version info, and key metrics from all configured Zabbix server nodes. Automatically skips unreachable nodes and provides partial results from available nodes. Use this when you need a complete overview regardless of individual node connectivity.",
                 inputSchema={
                     "type": "object",
                     "properties": {},
@@ -252,7 +252,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_aggregated_hosts",
-                description="Collect and combine host inventory data from all configured Zabbix server nodes into a unified response (includes automatic retry up to 2 times)",
+                description="Intelligent collection of host inventory from ALL available Zabbix server nodes. Gracefully handles connection failures by including only reachable nodes in the aggregated result. Ideal for getting a complete host inventory across your distributed infrastructure without manual node selection.",
                 inputSchema={
                     "type": "object",
                     "properties": {},
@@ -261,7 +261,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_execute_on_all_nodes",
-                description="Execute the same Zabbix API method across all configured server nodes and return aggregated results (includes automatic retry up to 2 times)",
+                description="Execute identical Zabbix API calls across ALL configured server nodes with intelligent error handling. Returns successful results from reachable nodes and clear error status for unreachable ones. Best choice for distributed operations when you want comprehensive coverage without manual node management.",
                 inputSchema={
                     "type": "object",
                     "properties": {
