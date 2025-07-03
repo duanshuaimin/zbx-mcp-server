@@ -107,23 +107,23 @@ class MCPServer:
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Zabbix server ID (optional - defaults to first available server)"
+                            "description": "optional - defaults to first available server，Zabbix server ID "
                         },
                         "group_name": {
                             "type": "string",
-                            "description": "Host group name to filter by (optional - only use when user specifically mentions a group)"
+                            "description": "optional - only use when user specifically mentions a group，Host group name to filter by (exact match) "
                         },
                         "host_name": {
                             "type": "string", 
-                            "description": "Host name to search for (optional - only use when user specifies a hostname)"
+                            "description": "optional - only use when user specifies a hostname，Host name to search for (exact match)"
                         },
                         "status": {
                             "type": "integer",
-                            "description": "Host status filter: 0=enabled, 1=disabled (optional)"
+                            "description": "optional - defaults to all hosts，Host status filter: 0=enabled, 1=disabled (optional)"
                         },
                         "include_templates": {
                             "type": "boolean",
-                            "description": "Include template info (optional - defaults to false)"
+                            "description": "optional - defaults to false，Include template info "
                         }
                     },
                     "required": []
