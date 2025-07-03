@@ -101,7 +101,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Get monitored hosts from a Zabbix server. Use specific filters to narrow results efficiently. For all hosts across multiple servers, use zabbix_get_aggregated_hosts instead.",
+                description="Get monitored hosts from a Zabbix server. default: all hosts. Use specific filters to narrow results efficiently. For all hosts across multiple servers, use zabbix_get_aggregated_hosts instead.",
                 inputSchema={
                     "type": "object",
                     "properties": {
