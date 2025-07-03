@@ -73,7 +73,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_test_connection",
-                description="Test connection to distributed Zabbix server nodes",
+                description="Test connection to distributed Zabbix server nodes with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -87,7 +87,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_server_info",
-                description="Get detailed information about a distributed Zabbix server node",
+                description="Get detailed information about a distributed Zabbix server node with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -101,7 +101,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Get hosts from distributed Zabbix server node",
+                description="Get hosts from distributed Zabbix server node with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -131,7 +131,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_create_host",
-                description="Create a new host in distributed Zabbix server node",
+                description="Create a new host in distributed Zabbix server node with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -166,7 +166,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_update_host",
-                description="Update an existing host in distributed Zabbix server node",
+                description="Update an existing host in distributed Zabbix server node with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -196,7 +196,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_delete_host",
-                description="Delete hosts from distributed Zabbix server node",
+                description="Delete hosts from distributed Zabbix server node with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -215,7 +215,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_host_groups",
-                description="Get all host groups from distributed Zabbix server node",
+                description="Get all host groups from distributed Zabbix server node with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -229,7 +229,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_templates",
-                description="Get all templates from distributed Zabbix server node",
+                description="Get all templates from distributed Zabbix server node with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -243,7 +243,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_distributed_summary",
-                description="Get summary status of all distributed Zabbix server nodes",
+                description="Get summary status of all distributed Zabbix server nodes with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {},
@@ -252,7 +252,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_aggregated_hosts",
-                description="Get hosts from all distributed Zabbix server nodes",
+                description="Get hosts from all distributed Zabbix server nodes with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {},
@@ -261,7 +261,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_execute_on_all_nodes",
-                description="Execute a Zabbix API call on all distributed server nodes",
+                description="Execute a Zabbix API call on all distributed server nodes with automatic retry (max 2 retries)",
                 inputSchema={
                     "type": "object",
                     "properties": {

@@ -4,6 +4,13 @@
 
 本手册提供了完整的远程主机测试指南，包括 Zabbix MCP 服务器的配置、启动、API 调用测试以及日志监控等功能。
 
+### 重要特性
+
+- **自动重试机制**: 所有 Zabbix API 调用都包含自动重试功能，最多重试 2 次
+- **指数退避**: 重试间隔采用指数退避策略（1秒、2秒）
+- **智能重试**: 仅对网络错误和临时 API 错误进行重试，认证错误和方法错误不重试
+- **详细日志**: 记录每次重试尝试和最终结果
+
 ## 1. 服务器配置
 
 ### 1.1 基本配置文件 (config.json)
@@ -189,6 +196,12 @@ tail -f logs/zabbix_mcp_server.log logs/zabbix_api.log
 2025-07-03 14:37:37,434 - zabbix_client.http://zabbix-server/zabbix - INFO - API Request: user.login - ID: 1
 2025-07-03 14:37:37,434 - zabbix_client.http://zabbix-server/zabbix - DEBUG - Request URL: http://zabbix-server/zabbix/api_jsonrpc.php
 2025-07-03 14:37:37,434 - zabbix_client.http://zabbix-server/zabbix - DEBUG - Request Data: {"jsonrpc": "2.0", "method": "user.login", "params": {"username": "Admin", "password": "***MASKED***"}, "id": 1}
+```
+
+#### API 重试日志
+```
+2025-07-03 14:37:37,434 - zabbix_client.http://zabbix-server/zabbix - WARNING - API HTTP Error (retry 1/2): host.get - ID: 2 - Duration: 5.000s - Error: HTTP error: timeout
+2025-07-03 14:37:39,434 - zabbix_client.http://zabbix-server/zabbix - INFO - API Request Retry 2/2: host.get - ID: 2
 ```
 
 #### API 响应日志
