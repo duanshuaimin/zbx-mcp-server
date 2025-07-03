@@ -345,7 +345,6 @@ class MCPServer:
             )
         
         try:
-            try:
             tool_request = CallToolRequest(**request.params)
             
             # Execute the tool
