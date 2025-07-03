@@ -101,7 +101,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Get monitored hosts from a Zabbix server. Call to get all hosts without parameters .  Use group_name filter only when explicitly requested.",
+                description="Get monitored hosts from a Zabbix server. Call to get all hosts without parameters .  Use group_name, host_name, status, include_templates filters only when explicitly requested.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -345,6 +345,7 @@ class MCPServer:
             )
         
         try:
+            try:
             tool_request = CallToolRequest(**request.params)
             
             # Execute the tool
