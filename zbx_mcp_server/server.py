@@ -378,12 +378,19 @@ class MCPServer:
             elif tool_request.name == "zabbix_get_hosts":
                 server_id = tool_request.arguments.get("server_id")
                 client = await self.server_manager.get_client(server_id)
-                hosts = await client.get_hosts(
-                    group_name=tool_request.arguments.get("group_name"),
-                    host_name=tool_request.arguments.get("host_name"),
-                    status=tool_request.arguments.get("status"),
-                    include_templates=tool_request.arguments.get("include_templates", False)
-                )
+                
+                # Build parameters dict with only non-empty values
+                kwargs = {}
+                if tool_request.arguments.get("group_name"):
+                    kwargs["group_name"] = tool_request.arguments["group_name"]
+                if tool_request.arguments.get("host_name"):
+                    kwargs["host_name"] = tool_request.arguments["host_name"]
+                if tool_request.arguments.get("status") is not None:
+                    kwargs["status"] = tool_request.arguments["status"]
+                if tool_request.arguments.get("include_templates"):
+                    kwargs["include_templates"] = tool_request.arguments["include_templates"]
+                
+                hosts = await client.get_hosts(**kwargs)
                 result = CallToolResult(
                     content=[{
                         "type": "text",

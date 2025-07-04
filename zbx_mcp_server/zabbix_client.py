@@ -239,27 +239,26 @@ class ZabbixClient:
             "selectInterfaces": ["interfaceid", "ip", "dns", "port", "type", "main"]
         }
         
+        # Only add template selection if explicitly requested
         if include_templates:
             params["selectParentTemplates"] = ["templateid", "name"]
         
-        # Apply filters
+        # Build filter parameters only if values are provided
         filter_params = {}
+        
+        # Add status filter only if specified
         if status is not None:
             filter_params["status"] = status
         
-        # Apply search - use exact match for efficiency
-        if host_name:
-            if host_name == "*":
-                # Skip wildcard searches that return no results
-                pass
-            else:
-                # Use exact host name match
-                filter_params["host"] = host_name
+        # Add host name filter only if specified and not wildcard
+        if host_name and host_name != "*":
+            filter_params["host"] = host_name
         
+        # Apply filters only if any exist
         if filter_params:
             params["filter"] = filter_params
         
-        # Apply group filter
+        # Apply group filter only if specified
         if group_name:
             # First get the group ID
             group_params = {
