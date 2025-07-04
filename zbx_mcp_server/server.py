@@ -119,7 +119,7 @@ class MCPServer:
                         },
                         "status": {
                             "type": "integer",
-                            "description": "Host status filter: 0=enabled hosts only, 1=disabled hosts only. Omit to get all hosts regardless of status."
+                            "description": "Host status filter: 0=enabled hosts only, 1=disabled hosts only. first get all hosts regardless of status"
                         },
                         "include_templates": {
                             "type": "boolean",
