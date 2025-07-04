@@ -101,29 +101,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Get monitored hosts from a Zabbix server(server ID is required,no server ID means all servers). IMPORTANT: This tool returns complete results in a single call. Do NOT call this tool multiple times for the same query. Use filters only when explicitly requested by the user.",
+                description="Get monitored hosts from a Zabbix server. IMPORTANT: This tool returns complete results in a single call. Do NOT call this tool multiple times for the same query.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
                             "description": "Zabbix server ID (optional, defaults to first available server). Use 'datacenter-beijing' for Beijing datacenter."
-                        },
-                        "group_name": {
-                            "type": "string",
-                            "description": "Filter by host group name (exact match). Only use when user specifically mentions a group name."
-                        },
-                        "host_name": {
-                            "type": "string", 
-                            "description": "Filter by specific host name (exact match). Only use when user specifies a particular hostname."
-                        },
-                        "status": {
-                            "type": "integer",
-                            "description": "Host status filter: 0=enabled hosts only, 1=disabled hosts only. first get all hosts regardless of status"
-                        },
-                        "include_templates": {
-                            "type": "boolean",
-                            "description": "Include template information in results (defaults to false). Only use when user asks for template details."
                         }
                     },
                     "required": []
@@ -379,18 +363,7 @@ class MCPServer:
                 server_id = tool_request.arguments.get("server_id")
                 client = await self.server_manager.get_client(server_id)
                 
-                # Build parameters dict with only non-empty values
-                kwargs = {}
-                if tool_request.arguments.get("group_name"):
-                    kwargs["group_name"] = tool_request.arguments["group_name"]
-                if tool_request.arguments.get("host_name"):
-                    kwargs["host_name"] = tool_request.arguments["host_name"]
-                if tool_request.arguments.get("status") is not None:
-                    kwargs["status"] = tool_request.arguments["status"]
-                if tool_request.arguments.get("include_templates"):
-                    kwargs["include_templates"] = tool_request.arguments["include_templates"]
-                
-                hosts = await client.get_hosts(**kwargs)
+                hosts = await client.get_hosts()
                 result = CallToolResult(
                     content=[{
                         "type": "text",
