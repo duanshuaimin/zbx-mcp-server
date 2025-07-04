@@ -330,16 +330,6 @@ class ZabbixClient:
         
         return await self._make_request("host.delete", host_ids)
     
-    async def get_host_groups(self) -> List[Dict[str, Any]]:
-        """Get all host groups."""
-        if not self.session_token:
-            await self.login()
-        
-        params = {
-            "output": ["groupid", "name"]
-        }
-        
-        return await self._make_request("hostgroup.get", params)
     
     async def get_templates(self) -> List[Dict[str, Any]]:
         """Get all templates."""

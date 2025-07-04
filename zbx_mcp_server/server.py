@@ -214,20 +214,6 @@ class MCPServer:
                 }
             ),
             Tool(
-                name="zabbix_get_host_groups",
-                description="Get all host groups from a Zabbix server. Call without parameters to get groups from the first available server. Only use when user explicitly asks for host groups list.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "server_id": {
-                            "type": "string",
-                            "description": "Server ID (optional - defaults to first available server)"
-                        }
-                    },
-                    "required": []
-                }
-            ),
-            Tool(
                 name="zabbix_get_templates",
                 description="Get monitoring templates",
                 inputSchema={
@@ -452,16 +438,6 @@ class MCPServer:
                     content=[{
                         "type": "text",
                         "text": f"Hosts deleted successfully: {json.dumps(deleted_hosts, indent=2)}"
-                    }]
-                )
-            elif tool_request.name == "zabbix_get_host_groups":
-                server_id = tool_request.arguments.get("server_id")
-                client = await self.server_manager.get_client(server_id)
-                groups = await client.get_host_groups()
-                result = CallToolResult(
-                    content=[{
-                        "type": "text",
-                        "text": json.dumps(groups, indent=2, ensure_ascii=False)
                     }]
                 )
             elif tool_request.name == "zabbix_get_templates":
