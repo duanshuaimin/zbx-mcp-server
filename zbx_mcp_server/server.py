@@ -101,7 +101,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Get monitored hosts from a Zabbix server. IMPORTANT: This tool returns complete results in a single call. Do NOT call this tool multiple times for the same query. Use filters only when explicitly requested by the user.",
+                description="Get monitored hosts from a Zabbix server(server ID is required,default all servers). IMPORTANT: This tool returns complete results in a single call. Do NOT call this tool multiple times for the same query. Use filters only when explicitly requested by the user.",
                 inputSchema={
                     "type": "object",
                     "properties": {
