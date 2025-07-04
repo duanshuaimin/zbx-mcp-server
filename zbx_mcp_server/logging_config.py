@@ -100,6 +100,28 @@ def setup_zabbix_logging(config: Dict[str, Any]) -> None:
         zabbix_handler.setFormatter(zabbix_formatter)
         zabbix_logger.addHandler(zabbix_handler)
     
+    # Create dedicated Zabbix API access log file
+    zabbix_access_log_file = config.get("zabbix_access_log_file", "logs/zabbix_api_access.log")
+    if zabbix_access_log_file:
+        access_logger = logging.getLogger("zabbix_client.access")
+        access_logger.setLevel(logging.INFO)
+        access_logger.propagate = False  # Do not propagate to parent logger
+
+        access_path = Path(zabbix_access_log_file)
+        access_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        access_handler = logging.handlers.RotatingFileHandler(
+            zabbix_access_log_file,
+            maxBytes=10 * 1024 * 1024,  # 10MB
+            backupCount=5
+        )
+        access_handler.setLevel(logging.INFO)
+        access_formatter = logging.Formatter(
+            "%(asctime)s - %(message)s"
+        )
+        access_handler.setFormatter(access_formatter)
+        access_logger.addHandler(access_handler)
+        
     # Configure server manager logger
     server_manager_logger = logging.getLogger("server_manager")
     server_manager_logger.setLevel(getattr(logging, log_level.upper()))

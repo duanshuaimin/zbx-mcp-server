@@ -49,6 +49,7 @@ class ZabbixClient:
         self.request_id = 1
         self._client: Optional[httpx.AsyncClient] = None
         self.logger = logging.getLogger(f"zabbix_client.{self.config.url}")
+        self.access_logger = logging.getLogger("zabbix_client.access")
         
         # Log retry configuration
         self.logger.info(f"ZabbixClient initialized with retry config: max_retries={self.config.max_retries}, backoff={self.config.retry_backoff}s")
@@ -113,9 +114,10 @@ class ZabbixClient:
         for attempt in range(max_retries + 1):
             start_time = time.time()
             
+            masked_request = self._mask_sensitive_data(request_data)
+            
             # Log request (only on first attempt to avoid spam)
             if attempt == 0:
-                masked_request = self._mask_sensitive_data(request_data)
                 self.logger.info(f"API Request: {method} - ID: {self.request_id-1} (max_retries={max_retries})")
                 self.logger.debug(f"Request URL: {url}")
                 self.logger.debug(f"Request Data: {json.dumps(masked_request, indent=2)}")
@@ -139,11 +141,15 @@ class ZabbixClient:
                     
                     # Don't retry on API errors - they are usually logic errors, not transient issues
                     self.logger.error(f"API Error (no retry): {error_msg}")
+                    self.access_logger.error(f"API Error: {method} - ID: {self.request_id-1} - Error: {error_msg}")
                     raise ZabbixAPIError(error_msg)
                 
                 # Log successful response (mask sensitive data)
                 masked_result = self._mask_sensitive_data(result)
                 self.logger.debug(f"Response Data: {json.dumps(masked_result, indent=2)}")
+                
+                # Log to access log
+                self.access_logger.info(f"API Call: {method} - ID: {self.request_id-1} - Params: {json.dumps(masked_request['params'])} - Result: {json.dumps(masked_result)}")
                 
                 return result.get("result", {})
                 
@@ -353,3 +359,17 @@ class ZabbixClient:
         }
         
         return await self._make_request("template.get", params)
+
+    async def get_problems(self) -> List[Dict[str, Any]]:
+        """Get all problems."""
+        if not self.session_token:
+            await self.login()
+        
+        params = {
+            "output": "extend",
+            "selectAcknowledges": "extend",
+            "selectTags": "extend",
+            "selectSuppressionData": "extend"
+        }
+        
+        return await self._make_request("problem.get", params)

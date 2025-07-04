@@ -230,6 +230,20 @@ class MCPServer:
                 }
             ),
             Tool(
+                name="zabbix_get_problems",
+                description="Get current problems from a Zabbix server.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (optional, defaults to first available server)."
+                        }
+                    },
+                    "required": []
+                }
+            ),
+            Tool(
                 name="zabbix_execute_on_all_nodes",
                 description="Execute API call on all servers",
                 inputSchema={
@@ -444,6 +458,16 @@ class MCPServer:
                     content=[{
                         "type": "text",
                         "text": json.dumps(aggregated_hosts, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_problems":
+                server_id = tool_request.arguments.get("server_id")
+                client = await self.server_manager.get_client(server_id)
+                problems = await client.get_problems()
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(problems, indent=2, ensure_ascii=False)
                     }]
                 )
             elif tool_request.name == "zabbix_execute_on_all_nodes":

@@ -154,6 +154,37 @@ class TestMCPEndpoints:
         assert result["content"][0]["type"] == "text"
         assert result["content"][0]["text"] == "pong"
     
+    def test_call_zabbix_get_problems_tool(self, client):
+        """Test calling the zabbix_get_problems tool."""
+        request_data = {
+            "jsonrpc": "2.0",
+            "id": 10,
+            "method": "tools/call",
+            "params": {
+                "name": "zabbix_get_problems",
+                "arguments": {}
+            }
+        }
+        
+        with patch("zbx_mcp_server.server.ZabbixServerManager") as mock_manager:
+            mock_client = AsyncMock()
+            mock_client.get_problems.return_value = [{"problem_id": "1", "name": "Test Problem"}]
+            mock_manager.return_value.get_client.return_value = mock_client
+            
+            response = client.post("/", json=request_data)
+            assert response.status_code == 200
+            
+            data = response.json()
+            assert data["jsonrpc"] == "2.0"
+            assert data["id"] == 10
+            assert "result" in data
+            
+            result = data["result"]
+            assert result["isError"] is False
+            assert len(result["content"]) == 1
+            assert result["content"][0]["type"] == "text"
+            assert json.loads(result["content"][0]["text"]) == [{"problem_id": "1", "name": "Test Problem"}]
+
     def test_unknown_method(self, client):
         """Test calling an unknown method."""
         request_data = {
