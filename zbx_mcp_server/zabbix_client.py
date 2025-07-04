@@ -17,6 +17,8 @@ class ZabbixConfig:
     password: str
     timeout: int = 30
     verify_ssl: bool = True
+    max_retries: int = 1
+    retry_backoff: float = 1.0
 
 
 class ZabbixAPIError(Exception):
@@ -28,7 +30,8 @@ class ZabbixClient:
     """Zabbix API client for host management."""
     
     def __init__(self, url: str = None, username: str = None, password: str = None, 
-                 timeout: int = 30, verify_ssl: bool = True, config: ZabbixConfig = None):
+                 timeout: int = 30, verify_ssl: bool = True, max_retries: int = 1, 
+                 retry_backoff: float = 1.0, config: ZabbixConfig = None):
         if config is not None:
             self.config = config
         else:
@@ -37,13 +40,18 @@ class ZabbixClient:
                 username=username,
                 password=password,
                 timeout=timeout,
-                verify_ssl=verify_ssl
+                verify_ssl=verify_ssl,
+                max_retries=max_retries,
+                retry_backoff=retry_backoff
             )
         self.url = self.config.url
         self.session_token: Optional[str] = None
         self.request_id = 1
         self._client: Optional[httpx.AsyncClient] = None
         self.logger = logging.getLogger(f"zabbix_client.{self.config.url}")
+        
+        # Log retry configuration
+        self.logger.info(f"ZabbixClient initialized with retry config: max_retries={self.config.max_retries}, backoff={self.config.retry_backoff}s")
         
     def _mask_sensitive_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mask sensitive data in API requests/responses for logging."""
@@ -77,8 +85,11 @@ class ZabbixClient:
             self._client = None
         self.session_token = None
     
-    async def _make_request(self, method: str, params: Dict[str, Any], max_retries: int = 2) -> Dict[str, Any]:
+    async def _make_request(self, method: str, params: Dict[str, Any], max_retries: int = None) -> Dict[str, Any]:
         """Make a JSON-RPC request to Zabbix API with retry functionality."""
+        if max_retries is None:
+            max_retries = self.config.max_retries
+            
         url = f"{self.config.url}/api_jsonrpc.php"
         
         request_data = {
@@ -105,7 +116,7 @@ class ZabbixClient:
             # Log request (only on first attempt to avoid spam)
             if attempt == 0:
                 masked_request = self._mask_sensitive_data(request_data)
-                self.logger.info(f"API Request: {method} - ID: {self.request_id-1}")
+                self.logger.info(f"API Request: {method} - ID: {self.request_id-1} (max_retries={max_retries})")
                 self.logger.debug(f"Request URL: {url}")
                 self.logger.debug(f"Request Data: {json.dumps(masked_request, indent=2)}")
             else:
@@ -126,19 +137,9 @@ class ZabbixClient:
                 if "error" in result:
                     error_msg = f"Zabbix API error for method '{method}': {result['error']}"
                     
-                    # Don't retry on authentication errors or invalid method errors
-                    if "authentication" in str(result['error']).lower() or "method" in str(result['error']).lower():
-                        self.logger.error(f"API Error (no retry): {error_msg}")
-                        raise ZabbixAPIError(error_msg)
-                    
-                    # Retry on other API errors
-                    if attempt < max_retries:
-                        self.logger.warning(f"API Error (retry {attempt + 1}/{max_retries}): {error_msg}")
-                        await asyncio.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s
-                        continue
-                    else:
-                        self.logger.error(f"API Error (max retries exceeded): {error_msg}")
-                        raise ZabbixAPIError(error_msg)
+                    # Don't retry on API errors - they are usually logic errors, not transient issues
+                    self.logger.error(f"API Error (no retry): {error_msg}")
+                    raise ZabbixAPIError(error_msg)
                 
                 # Log successful response (mask sensitive data)
                 masked_result = self._mask_sensitive_data(result)
@@ -150,12 +151,24 @@ class ZabbixClient:
                 duration = time.time() - start_time
                 error_msg = f"HTTP error: {str(e)}"
                 
+                # Only retry on network-related errors, not on client errors (4xx)
+                should_retry = (
+                    attempt < max_retries and 
+                    (isinstance(e, (httpx.ConnectError, httpx.TimeoutException, httpx.ReadTimeout)) or
+                     (hasattr(e, 'response') and e.response and e.response.status_code >= 500))
+                )
+                
+                # Log retry decision
                 if attempt < max_retries:
+                    retry_reason = "network error" if isinstance(e, (httpx.ConnectError, httpx.TimeoutException, httpx.ReadTimeout)) else f"server error ({e.response.status_code})" if hasattr(e, 'response') and e.response else "unknown error"
+                    self.logger.debug(f"Retry decision for {method}: should_retry={should_retry}, reason={retry_reason}")
+                
+                if should_retry:
                     self.logger.warning(f"API HTTP Error (retry {attempt + 1}/{max_retries}): {method} - ID: {self.request_id-1} - Duration: {duration:.3f}s - Error: {error_msg}")
-                    await asyncio.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s
+                    await asyncio.sleep(self.config.retry_backoff + attempt * 0.5)  # Configurable backoff
                     continue
                 else:
-                    self.logger.error(f"API HTTP Error (max retries exceeded): {method} - ID: {self.request_id-1} - Duration: {duration:.3f}s - Error: {error_msg}")
+                    self.logger.error(f"API HTTP Error (no retry): {method} - ID: {self.request_id-1} - Duration: {duration:.3f}s - Error: {error_msg}")
                     raise ZabbixAPIError(error_msg)
     
     async def login(self) -> str:

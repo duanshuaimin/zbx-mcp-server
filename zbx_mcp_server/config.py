@@ -16,6 +16,8 @@ class ZabbixServerConfig:
     verify_ssl: bool = True
     name: Optional[str] = None
     description: Optional[str] = None
+    max_retries: int = 1
+    retry_backoff: float = 1.0
 
 
 @dataclass

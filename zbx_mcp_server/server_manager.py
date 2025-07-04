@@ -40,7 +40,9 @@ class ZabbixServerManager:
                     username=server_config.username,
                     password=server_config.password,
                     timeout=server_config.timeout,
-                    verify_ssl=server_config.verify_ssl
+                    verify_ssl=server_config.verify_ssl,
+                    max_retries=server_config.max_retries,
+                    retry_backoff=server_config.retry_backoff
                 )
                 self.logger.debug(f"Client created for server: {server_id} at {server_config.url}")
         

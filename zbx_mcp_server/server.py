@@ -64,7 +64,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_list_servers",
-                description="List configured Zabbix servers",
+                description="List all configured Zabbix servers with their details. Returns complete server list in a single call - do not call repeatedly.",
                 inputSchema={
                     "type": "object",
                     "properties": {},
@@ -73,13 +73,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_test_connection",
-                description="Test Zabbix server connectivity. Call without parameters to test all servers.",
+                description="Test Zabbix server connectivity. Returns connection status for specified server or all servers. Call once per test - results are immediate.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Server ID to test (optional - defaults to testing all servers)"
+                            "description": "Server ID to test (optional). If not specified, tests all configured servers. Use 'datacenter-beijing' for Beijing datacenter."
                         }
                     },
                     "required": []
@@ -87,13 +87,13 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_server_info",
-                description="Get Zabbix server information. Call without parameters to get info from the first available server.",
+                description="Get Zabbix server information including version and status. Returns immediate results - do not call multiple times for the same server.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Server ID (optional - defaults to first available server)"
+                            "description": "Server ID (optional, defaults to first available server). Use 'datacenter-beijing' for Beijing datacenter."
                         }
                     },
                     "required": []
@@ -101,29 +101,29 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_hosts",
-                description="Get monitored hosts from a Zabbix server. Call to get all hosts without parameters .  Use group_name, host_name, status, include_templates filters only when explicitly requested.",
+                description="Get monitored hosts from a Zabbix server. IMPORTANT: This tool returns complete results in a single call. Do NOT call this tool multiple times for the same query. Use filters only when explicitly requested by the user.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "optional - defaults to first available server，Zabbix server ID "
+                            "description": "Zabbix server ID (optional, defaults to first available server). Use 'datacenter-beijing' for Beijing datacenter."
                         },
                         "group_name": {
                             "type": "string",
-                            "description": "optional - only use when user specifically mentions a group，Host group name to filter by (exact match) "
+                            "description": "Filter by host group name (exact match). Only use when user specifically mentions a group name."
                         },
                         "host_name": {
                             "type": "string", 
-                            "description": "optional - only use when user specifies a hostname，Host name to search for (exact match)"
+                            "description": "Filter by specific host name (exact match). Only use when user specifies a particular hostname."
                         },
                         "status": {
                             "type": "integer",
-                            "description": "optional - defaults to all hosts，Host status filter: 0=enabled, 1=disabled (optional)"
+                            "description": "Host status filter: 0=enabled hosts only, 1=disabled hosts only. Omit to get all hosts regardless of status."
                         },
                         "include_templates": {
                             "type": "boolean",
-                            "description": "optional - defaults to false，Include template info "
+                            "description": "Include template information in results (defaults to false). Only use when user asks for template details."
                         }
                     },
                     "required": []
