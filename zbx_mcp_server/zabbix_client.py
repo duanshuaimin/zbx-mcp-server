@@ -383,3 +383,25 @@ class ZabbixClient:
             params["sortorder"] = sortorder
         
         return await self._make_request("problem.get", params)
+
+    async def get_items(
+        self,
+        hostids: Optional[List[str]] = None,
+        search: Optional[Dict[str, Any]] = None,
+        output: Optional[List[str]] = None,
+        sortfield: Optional[str] = None,
+        sortorder: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get items from Zabbix."""
+        if not self.session_token:
+            await self.login()
+
+        params = {
+            "output": output if output else "extend",
+            "hostids": hostids if hostids else [],
+            "search": search if search else {},
+            "sortfield": sortfield if sortfield else "name",
+            "sortorder": sortorder if sortorder else "ASC"
+        }
+
+        return await self._make_request("item.get", params)

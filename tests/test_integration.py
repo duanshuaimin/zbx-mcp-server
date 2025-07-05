@@ -49,7 +49,7 @@ class TestMCPServerIntegration:
         assert data["jsonrpc"] == "2.0"
         assert data["id"] == 2
         assert "result" in data
-        assert len(data["result"]["tools"]) == 14
+        assert len(data["result"]["tools"]) == 15
         
         # Step 3: Call echo tool
         call_echo_request = {

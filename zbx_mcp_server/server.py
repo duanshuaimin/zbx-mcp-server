@@ -269,6 +269,42 @@ class MCPServer:
                     },
                     "required": ["method"]
                 }
+            ),
+            Tool(
+                name="zabbix_get_items",
+                description="Get monitoring items from a Zabbix server.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (optional, defaults to first available server)."
+                        },
+                        "hostids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Host IDs to get items for."
+                        },
+                        "search": {
+                            "type": "object",
+                            "description": "Search parameters (e.g., {'name': 'CPU utilization'})."
+                        },
+                        "output": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Fields to return."
+                        },
+                        "sortfield": {
+                            "type": "string",
+                            "description": "Field to sort by (e.g., 'name', 'key_')."
+                        },
+                        "sortorder": {
+                            "type": "string",
+                            "description": "Sort order ('ASC' or 'DESC')."
+                        }
+                    },
+                    "required": ["hostids"]
+                }
             )
         ]
     
@@ -519,6 +555,27 @@ class MCPServer:
                     content=[{
                         "type": "text",
                         "text": json.dumps(execution_results, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_items":
+                server_id = tool_request.arguments.get("server_id")
+                hostids = tool_request.arguments.get("hostids")
+                search = tool_request.arguments.get("search")
+                output = tool_request.arguments.get("output")
+                sortfield = tool_request.arguments.get("sortfield")
+                sortorder = tool_request.arguments.get("sortorder")
+                client = await self.server_manager.get_client(server_id)
+                items = await client.get_items(
+                    hostids=hostids,
+                    search=search,
+                    output=output,
+                    sortfield=sortfield,
+                    sortorder=sortorder
+                )
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(items, indent=2, ensure_ascii=False)
                     }]
                 )
             else:

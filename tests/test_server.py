@@ -24,7 +24,7 @@ class TestMCPServer:
     def test_server_initialization(self, server):
         """Test that server initializes correctly."""
         assert server.app is not None
-        assert len(server.tools) == 14
+        assert len(server.tools) == 15
         
         tool_names = [tool.name for tool in server.tools]
         assert "echo" in tool_names
@@ -33,7 +33,7 @@ class TestMCPServer:
     def test_register_tools(self, server):
         """Test that tools are registered correctly."""
         tools = server._register_tools()
-        assert len(tools) == 14
+        assert len(tools) == 15
         
         echo_tool = next(t for t in tools if t.name == "echo")
         assert echo_tool.description == "Echo back the input message"
@@ -97,7 +97,7 @@ class TestMCPEndpoints:
         
         result = data["result"]
         assert "tools" in result
-        assert len(result["tools"]) == 14
+        assert len(result["tools"]) == 15
         
         tool_names = [tool["name"] for tool in result["tools"]]
         assert "echo" in tool_names
@@ -183,6 +183,37 @@ class TestMCPEndpoints:
             assert len(result["content"]) == 1
             assert result["content"][0]["type"] == "text"
             assert json.loads(result["content"][0]["text"]) == {"server1": {"data": [{"problem_id": "1", "name": "Test Problem"}]}}
+
+    def test_call_zabbix_get_items_tool(self, client):
+        """Test calling the zabbix_get_items tool."""
+        request_data = {
+            "jsonrpc": "2.0",
+            "id": 11,
+            "method": "tools/call",
+            "params": {
+                "name": "zabbix_get_items",
+                "arguments": {
+                    "hostids": ["1001"]
+                }
+            }
+        }
+
+        with patch("zbx_mcp_server.zabbix_client.ZabbixClient.get_items", new_callable=AsyncMock) as mock_get_items:
+            mock_get_items.return_value = [{"itemid": "1", "name": "CPU Utilization"}]
+
+            response = client.post("/", json=request_data)
+            assert response.status_code == 200
+
+            data = response.json()
+            assert data["jsonrpc"] == "2.0"
+            assert data["id"] == 11
+            assert "result" in data
+
+            result = data["result"]
+            assert result["isError"] is False
+            assert len(result["content"]) == 1
+            assert result["content"][0]["type"] == "text"
+            assert json.loads(result["content"][0]["text"]) == [{"itemid": "1", "name": "CPU Utilization"}]
 
     def test_unknown_method(self, client):
         """Test calling an unknown method."""

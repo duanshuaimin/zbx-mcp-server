@@ -35,3 +35,23 @@ async def test_get_problems_api_error(client):
         
         with pytest.raises(ZabbixAPIError):
             await client.get_problems()
+
+@pytest.mark.asyncio
+async def test_get_items_success(client):
+    """Test successful retrieval of items."""
+    mock_response = [{"itemid": "1", "name": "CPU Utilization"}]
+    client.session_token = "dummy_token"
+
+    with patch.object(client, '_make_request', new_callable=AsyncMock) as mock_request:
+        mock_request.return_value = mock_response
+
+        items = await client.get_items(hostids=["1001"])
+
+        assert items == mock_response
+        mock_request.assert_called_once_with("item.get", {
+            "output": "extend",
+            "hostids": ["1001"],
+            "search": {},
+            "sortfield": "name",
+            "sortorder": "ASC"
+        })
