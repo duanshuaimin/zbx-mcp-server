@@ -2,6 +2,7 @@
 
 import json
 import pytest
+from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
 from zbx_mcp_server.server import MCPServer, create_app
 from zbx_mcp_server.models import Tool
@@ -23,7 +24,7 @@ class TestMCPServer:
     def test_server_initialization(self, server):
         """Test that server initializes correctly."""
         assert server.app is not None
-        assert len(server.tools) == 2
+        assert len(server.tools) == 14
         
         tool_names = [tool.name for tool in server.tools]
         assert "echo" in tool_names
@@ -32,7 +33,7 @@ class TestMCPServer:
     def test_register_tools(self, server):
         """Test that tools are registered correctly."""
         tools = server._register_tools()
-        assert len(tools) == 2
+        assert len(tools) == 14
         
         echo_tool = next(t for t in tools if t.name == "echo")
         assert echo_tool.description == "Echo back the input message"
@@ -96,7 +97,7 @@ class TestMCPEndpoints:
         
         result = data["result"]
         assert "tools" in result
-        assert len(result["tools"]) == 2
+        assert len(result["tools"]) == 14
         
         tool_names = [tool["name"] for tool in result["tools"]]
         assert "echo" in tool_names
@@ -165,11 +166,9 @@ class TestMCPEndpoints:
                 "arguments": {}
             }
         }
-        
-        with patch("zbx_mcp_server.server.ZabbixServerManager") as mock_manager:
-            mock_client = AsyncMock()
-            mock_client.get_problems.return_value = [{"problem_id": "1", "name": "Test Problem"}]
-            mock_manager.return_value.get_client.return_value = mock_client
+
+        with patch("zbx_mcp_server.server_manager.ZabbixServerManager.execute_on_all_nodes", new_callable=AsyncMock) as mock_execute:
+            mock_execute.return_value = {"server1": {"data": [{"problem_id": "1", "name": "Test Problem"}]}}
             
             response = client.post("/", json=request_data)
             assert response.status_code == 200
@@ -183,7 +182,7 @@ class TestMCPEndpoints:
             assert result["isError"] is False
             assert len(result["content"]) == 1
             assert result["content"][0]["type"] == "text"
-            assert json.loads(result["content"][0]["text"]) == [{"problem_id": "1", "name": "Test Problem"}]
+            assert json.loads(result["content"][0]["text"]) == {"server1": {"data": [{"problem_id": "1", "name": "Test Problem"}]}}
 
     def test_unknown_method(self, client):
         """Test calling an unknown method."""
@@ -257,9 +256,9 @@ class TestMCPEndpoints:
         
         data = response.json()
         assert data["jsonrpc"] == "2.0"
-        assert data["id"] is None
+        assert "id" not in data
         assert "error" in data
-        assert data["error"]["code"] == -32603
+        assert data["error"]["code"] == -32700
     
     def test_invalid_request_structure(self, client):
         """Test sending request with invalid structure."""
@@ -314,7 +313,7 @@ class TestMCPEndpoints:
         
         data = response.json()
         assert data["jsonrpc"] == "2.0"
-        assert data["id"] is None
+        assert "id" not in data
         assert "result" in data
 
 

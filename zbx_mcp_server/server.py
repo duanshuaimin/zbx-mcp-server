@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from .models import (
     MCPRequest, MCPResponse, MCPError, InitializeResult, 
@@ -231,13 +232,21 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_problems",
-                description="Get current problems from a Zabbix server.",
+                description="Get current problems from a Zabbix server, or all Zabbix servers.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "server_id": {
                             "type": "string",
-                            "description": "Zabbix server ID (optional, defaults to first available server)."
+                            "description": "Zabbix server ID. If not specified, problems from all servers will be returned."
+                        },
+                        "sortfield": {
+                            "type": "string",
+                            "description": "Field to sort by (e.g., 'eventid', 'severity', 'clock')."
+                        },
+                        "sortorder": {
+                            "type": "string",
+                            "description": "Sort order ('ASC' or 'DESC')."
                         }
                     },
                     "required": []
@@ -269,10 +278,16 @@ class MCPServer:
         @self.app.post("/")
         async def handle_mcp_request(request: Request):
             """Handle MCP JSON-RPC requests."""
+            body = None
+            request_id = None
             try:
                 body = await request.json()
+                request_id = body.get("id") if isinstance(body, dict) else None
+
+                if "jsonrpc" not in body:
+                    raise ValueError("jsonrpc field is required")
                 mcp_request = MCPRequest(**body)
-                
+
                 # Handle different MCP methods
                 if mcp_request.method == "initialize":
                     result = self._handle_initialize(mcp_request)
@@ -284,13 +299,22 @@ class MCPServer:
                     result = self._create_error_response(
                         mcp_request.id, -32601, f"Method not found: {mcp_request.method}"
                     )
-                
+
                 return JSONResponse(content=result.model_dump())
-                
+
+            except ValidationError as e:
+                error_response = self._create_error_response(
+                    request_id, -32603, f"Invalid Request: {e.errors()[0]['msg']}"
+                )
+                return JSONResponse(content=error_response.model_dump())
+            except json.JSONDecodeError:
+                error_response = self._create_error_response(
+                    None, -32700, "Parse error: Invalid JSON was received by the server."
+                )
+                return JSONResponse(content=error_response.model_dump())
             except Exception as e:
-                error_response = MCPResponse(
-                    id=getattr(body, 'id', None) if 'body' in locals() else None,
-                    error={"code": -32603, "message": f"Internal error: {str(e)}"}
+                error_response = self._create_error_response(
+                    request_id, -32603, f"Invalid Request: {str(e)}"
                 )
                 return JSONResponse(content=error_response.model_dump())
     
@@ -462,8 +486,25 @@ class MCPServer:
                 )
             elif tool_request.name == "zabbix_get_problems":
                 server_id = tool_request.arguments.get("server_id")
-                client = await self.server_manager.get_client(server_id)
-                problems = await client.get_problems()
+                sortfield = tool_request.arguments.get("sortfield")
+                sortorder = tool_request.arguments.get("sortorder")
+
+                if server_id:
+                    client = await self.server_manager.get_client(server_id)
+                    problems = await client.get_problems(sortfield=sortfield, sortorder=sortorder)
+                else:
+                    problems = await self.server_manager.execute_on_all_nodes(
+                        "problem.get", 
+                        params={
+                            "sortfield": sortfield,
+                            "sortorder": sortorder,
+                            "output": "extend",
+                            "selectAcknowledges": "extend",
+                            "selectTags": "extend",
+                            "selectSuppressionData": "extend"
+                        }
+                    )
+
                 result = CallToolResult(
                     content=[{
                         "type": "text",

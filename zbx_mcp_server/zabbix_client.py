@@ -360,7 +360,11 @@ class ZabbixClient:
         
         return await self._make_request("template.get", params)
 
-    async def get_problems(self) -> List[Dict[str, Any]]:
+    async def get_problems(
+        self,
+        sortfield: Optional[str] = None,
+        sortorder: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Get all problems."""
         if not self.session_token:
             await self.login()
@@ -371,5 +375,11 @@ class ZabbixClient:
             "selectTags": "extend",
             "selectSuppressionData": "extend"
         }
+        
+        if sortfield:
+            params["sortfield"] = sortfield
+        
+        if sortorder:
+            params["sortorder"] = sortorder
         
         return await self._make_request("problem.get", params)

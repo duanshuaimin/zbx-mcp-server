@@ -49,7 +49,7 @@ class TestMCPServerIntegration:
         assert data["jsonrpc"] == "2.0"
         assert data["id"] == 2
         assert "result" in data
-        assert len(data["result"]["tools"]) == 2
+        assert len(data["result"]["tools"]) == 14
         
         # Step 3: Call echo tool
         call_echo_request = {
@@ -118,7 +118,7 @@ class TestMCPServerIntegration:
         
         data = response.json()
         assert "error" in data
-        assert data["error"]["code"] == -32603
+        assert data["error"]["code"] == -32700
     
     def test_tool_schema_validation(self, client):
         """Test that tool schemas are properly validated."""
@@ -167,7 +167,10 @@ class TestMCPServerIntegration:
             response = client.post("/", json=request_data)
             data = response.json()
             
-            assert data["id"] == case["expected_id"]
+            if case["expected_id"] is None:
+                assert "id" not in data
+            else:
+                assert data["id"] == case["expected_id"]
 
 
 class TestMCPClientCompatibility:
@@ -330,8 +333,26 @@ class TestMCPServerStability:
             {"id": 1, "method": "initialize"},  # Missing jsonrpc
         ]
         
-        for request_data in malformed_requests:
-            response = client.post("/", json=request_data)
-            assert response.status_code == 200
-            data = response.json()
-            assert "error" in data
+        # Missing method
+        response = client.post("/", json=malformed_requests[0])
+        assert response.status_code == 200
+        data = response.json()
+        assert "error" in data
+        assert data["error"]["code"] == -32603
+        assert data["error"]["message"] == "Invalid Request: Field required"
+
+        # Missing params for tools/call
+        response = client.post("/", json=malformed_requests[1])
+        assert response.status_code == 200
+        data = response.json()
+        assert "error" in data
+        assert data["error"]["code"] == -32602
+        assert "Missing params for tools/call" in data["error"]["message"]
+
+        # Missing jsonrpc
+        response = client.post("/", json=malformed_requests[2])
+        assert response.status_code == 200
+        data = response.json()
+        assert "error" in data
+        assert data["error"]["code"] == -32603
+        assert data["error"]["message"] == "Invalid Request: jsonrpc field is required"
