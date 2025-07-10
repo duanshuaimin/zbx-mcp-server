@@ -367,17 +367,37 @@ class ZabbixClient:
     async def get_problems(
         self,
         sortfield: Optional[str] = None,
-        sortorder: Optional[str] = None
+        sortorder: Optional[str] = None,
+        output: Optional[str] = None,
+        selectAcknowledges: Optional[str] = None,
+        selectTags: Optional[str] = None,
+        selectSuppressionData: Optional[str] = None,
+        hostids: Optional[List[str]] = None,
+        groupids: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
-        """Get all problems."""
+        """Get all problems.
+        
+        Args:
+            sortfield: Field to sort by (e.g., 'eventid', 'severity', 'clock')
+            sortorder: Sort order ('ASC' or 'DESC')
+            output: Output format ('extend' for full details, 'count' for count only)
+            selectAcknowledges: Include acknowledgment information ('extend' or 'count')
+            selectTags: Include tag information ('extend' or 'count')
+            selectSuppressionData: Include suppression data ('extend' or 'count')
+            hostids: List of host IDs to filter problems by
+            groupids: List of group IDs to filter problems by
+            
+        Returns:
+            List of problem information
+        """
         if not self.session_token:
             await self.login()
         
         params = {
-            "output": "extend",
-            "selectAcknowledges": "extend",
-            "selectTags": "extend",
-            "selectSuppressionData": "extend"
+            "output": output or "extend",
+            "selectAcknowledges": selectAcknowledges or "extend",
+            "selectTags": selectTags or "extend",
+            "selectSuppressionData": selectSuppressionData or "extend"
         }
         
         if sortfield:
@@ -385,8 +405,82 @@ class ZabbixClient:
         
         if sortorder:
             params["sortorder"] = sortorder
+            
+        if hostids:
+            params["hostids"] = hostids
+            
+        if groupids:
+            params["groupids"] = groupids
         
         return await self._make_request("problem.get", params)
+
+    async def get_host_problems(
+        self,
+        host_name: Optional[str] = None,
+        host_id: Optional[str] = None,
+        sortfield: Optional[str] = None,
+        sortorder: Optional[str] = None,
+        output: Optional[str] = None,
+        selectAcknowledges: Optional[str] = None,
+        selectTags: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get problems for a specific host.
+        
+        Args:
+            host_name: Technical host name to query problems for
+            host_id: Host ID to query problems for (takes precedence over host_name)
+            sortfield: Field to sort by (e.g., 'eventid', 'severity', 'clock')
+            sortorder: Sort order ('ASC' or 'DESC')
+            output: Output format ('extend' for full details, 'count' for count only)
+            selectAcknowledges: Include acknowledgment information ('extend' or 'count')
+            selectTags: Include tag information ('extend' or 'count')
+            
+        Returns:
+            Dictionary containing host information and problems
+        """
+        if not self.session_token:
+            await self.login()
+        
+        # First get host information
+        if host_id:
+            host_params = {
+                "output": ["hostid", "host", "name", "status"],
+                "hostids": [host_id]
+            }
+        elif host_name:
+            host_params = {
+                "output": ["hostid", "host", "name", "status"],
+                "filter": {"host": host_name}
+            }
+        else:
+            raise ValueError("Either host_id or host_name must be provided")
+        
+        hosts = await self._make_request("host.get", host_params)
+        if not hosts:
+            return {
+                "host": None,
+                "problems": [],
+                "error": f"Host not found: {host_name or host_id}"
+            }
+        
+        host_info = hosts[0]
+        host_id = host_info["hostid"]
+        
+        # Get problems for the host
+        problems = await self.get_problems(
+            hostids=[host_id],
+            sortfield=sortfield,
+            sortorder=sortorder,
+            output=output,
+            selectAcknowledges=selectAcknowledges,
+            selectTags=selectTags
+        )
+        
+        return {
+            "host": host_info,
+            "problems": problems,
+            "problem_count": len(problems) if isinstance(problems, list) else 0
+        }
 
     async def get_items(
         self,

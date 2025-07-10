@@ -351,6 +351,82 @@ class MCPServer:
                     },
                     "required": ["server_id"]
                 }
+            ),
+            Tool(
+                name="zabbix_get_problems_by_server",
+                description="Get current problems from a specific Zabbix server. Returns complete results in a single call.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (required). Use specific server ID like 'datacenter-beijing' to get problems from that server."
+                        },
+                        "sortfield": {
+                            "type": "string",
+                            "description": "Field to sort by (e.g., 'eventid', 'severity', 'clock')."
+                        },
+                        "sortorder": {
+                            "type": "string",
+                            "description": "Sort order ('ASC' or 'DESC')."
+                        },
+                        "output": {
+                            "type": "string",
+                            "description": "Output format ('extend' for full details, 'count' for count only). Default: 'extend'"
+                        },
+                        "selectAcknowledges": {
+                            "type": "string",
+                            "description": "Include acknowledgment information ('extend' or 'count'). Default: 'extend'"
+                        },
+                        "selectTags": {
+                            "type": "string",
+                            "description": "Include tag information ('extend' or 'count'). Default: 'extend'"
+                        }
+                    },
+                    "required": ["server_id"]
+                }
+            ),
+            Tool(
+                name="zabbix_get_host_problems_by_server",
+                description="Get current problems for a specific host from a specific Zabbix server. Returns complete results in a single call.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (required). Use specific server ID like 'datacenter-beijing'."
+                        },
+                        "host_name": {
+                            "type": "string",
+                            "description": "Technical host name to query problems for."
+                        },
+                        "host_id": {
+                            "type": "string",
+                            "description": "Host ID to query problems for (takes precedence over host_name)."
+                        },
+                        "sortfield": {
+                            "type": "string",
+                            "description": "Field to sort by (e.g., 'eventid', 'severity', 'clock')."
+                        },
+                        "sortorder": {
+                            "type": "string",
+                            "description": "Sort order ('ASC' or 'DESC')."
+                        },
+                        "output": {
+                            "type": "string",
+                            "description": "Output format ('extend' for full details, 'count' for count only). Default: 'extend'"
+                        },
+                        "selectAcknowledges": {
+                            "type": "string",
+                            "description": "Include acknowledgment information ('extend' or 'count'). Default: 'extend'"
+                        },
+                        "selectTags": {
+                            "type": "string",
+                            "description": "Include tag information ('extend' or 'count'). Default: 'extend'"
+                        }
+                    },
+                    "required": ["server_id"]
+                }
             )
         ]
     
@@ -665,6 +741,80 @@ class MCPServer:
                             "server_id": server_id,
                             "server_name": self.server_manager.config.zabbix_servers[server_id].name,
                             "hosts": hosts
+                        }, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_problems_by_server":
+                server_id = tool_request.arguments.get("server_id")
+                sortfield = tool_request.arguments.get("sortfield")
+                sortorder = tool_request.arguments.get("sortorder")
+                output = tool_request.arguments.get("output", "extend")
+                selectAcknowledges = tool_request.arguments.get("selectAcknowledges", "extend")
+                selectTags = tool_request.arguments.get("selectTags", "extend")
+                
+                if not server_id:
+                    return self._create_error_response(
+                        request.id, -32602, "server_id is required"
+                    )
+                
+                client = await self.server_manager.get_client(server_id)
+                problems = await client.get_problems(
+                    sortfield=sortfield,
+                    sortorder=sortorder,
+                    output=output,
+                    selectAcknowledges=selectAcknowledges,
+                    selectTags=selectTags
+                )
+                
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps({
+                            "server_id": server_id,
+                            "server_name": self.server_manager.config.zabbix_servers[server_id].name,
+                            "problems": problems,
+                            "problem_count": len(problems) if isinstance(problems, list) else 0
+                        }, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_host_problems_by_server":
+                server_id = tool_request.arguments.get("server_id")
+                host_name = tool_request.arguments.get("host_name")
+                host_id = tool_request.arguments.get("host_id")
+                sortfield = tool_request.arguments.get("sortfield")
+                sortorder = tool_request.arguments.get("sortorder")
+                output = tool_request.arguments.get("output", "extend")
+                selectAcknowledges = tool_request.arguments.get("selectAcknowledges", "extend")
+                selectTags = tool_request.arguments.get("selectTags", "extend")
+                
+                if not server_id:
+                    return self._create_error_response(
+                        request.id, -32602, "server_id is required"
+                    )
+                
+                if not host_id and not host_name:
+                    return self._create_error_response(
+                        request.id, -32602, "Either host_id or host_name must be provided"
+                    )
+                
+                client = await self.server_manager.get_client(server_id)
+                host_problems = await client.get_host_problems(
+                    host_name=host_name,
+                    host_id=host_id,
+                    sortfield=sortfield,
+                    sortorder=sortorder,
+                    output=output,
+                    selectAcknowledges=selectAcknowledges,
+                    selectTags=selectTags
+                )
+                
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps({
+                            "server_id": server_id,
+                            "server_name": self.server_manager.config.zabbix_servers[server_id].name,
+                            "host_problems": host_problems
                         }, indent=2, ensure_ascii=False)
                     }]
                 )
