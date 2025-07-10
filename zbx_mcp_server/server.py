@@ -305,6 +305,28 @@ class MCPServer:
                     },
                     "required": ["hostids"]
                 }
+            ),
+            Tool(
+                name="zabbix_get_templates_by_host",
+                description="Get monitoring templates assigned to a specific host.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (optional, defaults to first available server)."
+                        },
+                        "host_name": {
+                            "type": "string",
+                            "description": "Technical host name to query templates for."
+                        },
+                        "host_id": {
+                            "type": "string",
+                            "description": "Host ID to query templates for (takes precedence over host_name)."
+                        }
+                    },
+                    "required": []
+                }
             )
         ]
     
@@ -576,6 +598,27 @@ class MCPServer:
                     content=[{
                         "type": "text",
                         "text": json.dumps(items, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_templates_by_host":
+                server_id = tool_request.arguments.get("server_id")
+                host_name = tool_request.arguments.get("host_name")
+                host_id = tool_request.arguments.get("host_id")
+                
+                if not host_id and not host_name:
+                    return self._create_error_response(
+                        request.id, -32602, "Either host_id or host_name must be provided"
+                    )
+                
+                client = await self.server_manager.get_client(server_id)
+                templates_info = await client.get_templates_by_host(
+                    host_name=host_name,
+                    host_id=host_id
+                )
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps(templates_info, indent=2, ensure_ascii=False)
                     }]
                 )
             else:

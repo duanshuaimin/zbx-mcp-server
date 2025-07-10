@@ -405,3 +405,58 @@ class ZabbixClient:
         }
 
         return await self._make_request("item.get", params)
+    
+    async def get_templates_by_host(
+        self,
+        host_name: Optional[str] = None,
+        host_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get templates assigned to a specific host.
+        
+        Args:
+            host_name: Technical host name to filter by
+            host_id: Host ID to filter by (takes precedence over host_name)
+        
+        Returns:
+            List of template information for the specified host
+        """
+        if not self.session_token:
+            await self.login()
+        
+        if not host_id and not host_name:
+            raise ValueError("Either host_id or host_name must be provided")
+        
+        # Build filter parameters
+        filter_params = {}
+        if host_id:
+            filter_params["hostid"] = host_id
+        elif host_name:
+            filter_params["host"] = host_name
+        
+        # Get host with templates
+        params = {
+            "output": ["hostid", "host", "name"],
+            "filter": filter_params,
+            "selectParentTemplates": ["templateid", "host", "name", "description"]
+        }
+        
+        hosts = await self._make_request("host.get", params)
+        
+        if not hosts:
+            return []
+        
+        # Extract templates from the first matching host
+        host = hosts[0]
+        templates = host.get("parentTemplates", [])
+        
+        # Add host information to the result
+        result = {
+            "host": {
+                "hostid": host["hostid"],
+                "host": host["host"],
+                "name": host["name"]
+            },
+            "templates": templates
+        }
+        
+        return result
