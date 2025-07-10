@@ -327,6 +327,30 @@ class MCPServer:
                     },
                     "required": []
                 }
+            ),
+            Tool(
+                name="zabbix_get_hosts_by_server",
+                description="Get monitored hosts from a specific Zabbix server. Returns complete results in a single call.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "server_id": {
+                            "type": "string",
+                            "description": "Zabbix server ID (required). Use specific server ID like 'datacenter-beijing' to get hosts from that server."
+                        },
+                        "output": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Fields to return (optional). Default: ['hostid', 'host', 'name', 'status']"
+                        },
+                        "selectGroups": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Host group fields to return (optional). Default: ['groupid', 'name']"
+                        }
+                    },
+                    "required": ["server_id"]
+                }
             )
         ]
     
@@ -619,6 +643,29 @@ class MCPServer:
                     content=[{
                         "type": "text",
                         "text": json.dumps(templates_info, indent=2, ensure_ascii=False)
+                    }]
+                )
+            elif tool_request.name == "zabbix_get_hosts_by_server":
+                server_id = tool_request.arguments.get("server_id")
+                output = tool_request.arguments.get("output", ["hostid", "host", "name", "status"])
+                selectGroups = tool_request.arguments.get("selectGroups", ["groupid", "name"])
+                
+                if not server_id:
+                    return self._create_error_response(
+                        request.id, -32602, "server_id is required"
+                    )
+                
+                client = await self.server_manager.get_client(server_id)
+                hosts = await client.get_hosts(output=output, selectGroups=selectGroups)
+                
+                result = CallToolResult(
+                    content=[{
+                        "type": "text",
+                        "text": json.dumps({
+                            "server_id": server_id,
+                            "server_name": self.server_manager.config.zabbix_servers[server_id].name,
+                            "hosts": hosts
+                        }, indent=2, ensure_ascii=False)
                     }]
                 )
             else:

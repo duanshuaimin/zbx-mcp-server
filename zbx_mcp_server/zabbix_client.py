@@ -223,7 +223,9 @@ class ZabbixClient:
         group_name: Optional[str] = None,
         host_name: Optional[str] = None,
         status: Optional[int] = None,
-        include_templates: bool = False
+        include_templates: bool = False,
+        output: Optional[List[str]] = None,
+        selectGroups: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
         """Get hosts from Zabbix.
         
@@ -232,6 +234,8 @@ class ZabbixClient:
             host_name: Filter by host name (partial match)
             status: Host status (0=enabled, 1=disabled)
             include_templates: If True, include parent templates in the result.
+            output: List of fields to return (optional)
+            selectGroups: List of group fields to return (optional)
         
         Returns:
             List of host information
@@ -240,8 +244,8 @@ class ZabbixClient:
             await self.login()
         
         params = {
-            "output": ["hostid", "host", "name", "status", "available"],
-            "selectGroups": ["groupid", "name"],
+            "output": output or ["hostid", "host", "name", "status", "available"],
+            "selectGroups": selectGroups or ["groupid", "name"],
             "selectInterfaces": ["interfaceid", "ip", "dns", "port", "type", "main"]
         }
         
