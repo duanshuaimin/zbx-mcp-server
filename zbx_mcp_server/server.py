@@ -232,7 +232,7 @@ class MCPServer:
             ),
             Tool(
                 name="zabbix_get_problems",
-                description="Get current problems from a Zabbix server, or all Zabbix servers.",
+                description="获取或读取全部Zabbix服务器被监控主机的问题清单。支持从指定服务器或所有配置的服务器获取当前活动问题，包括告警事件、严重级别、确认状态、标签信息等详细数据。可用于告警处理、故障排查和监控分析。",
                 inputSchema={
                     "type": "object",
                     "properties": {
